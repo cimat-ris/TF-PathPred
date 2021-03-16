@@ -25,7 +25,6 @@ class TrajDataset:
         self.groupmates = {}
 
         # fps is necessary to calc any data related to time (e.g. velocity, acceleration)
-        self.fps = -1
 
         self.title = ''
 
@@ -37,7 +36,7 @@ class TrajDataset:
         # FixMe ?
         #  self.trajectories_lazy = []
 
-    def postprocess(self, use_kalman_smoother=False):
+    def postprocess(self, fps, sampling_rate=1, use_kalman=False):
         """
         This function should be called after loading the data by loader
         It performs the following steps:
@@ -47,16 +46,18 @@ class TrajDataset:
         -: fill 'groumates' if they are not set
         -: checks if velocity do not exist, compute it for each agent
         -: compute bounding box of trajectories
+
+        :param fps: video framerate
+        :param sampling_rate: if bigger than one, the data needs downsampling,
+                              otherwise needs interpolation
+        :param use_kalman:  for smoothing agent velocities
+        :return: None
         """
 
-        # check 1
-        if self.fps < 0:
-            raise ValueError("Error! fps of dataset is not set!")
-
-        # check 2
+        # check
         for critical_column in self.critical_columns:
             if critical_column not in self.data:
-                raise ValueError("Error! critical columns are missing!")
+                raise ValueError("Error! some critical columns are missing from trajectory dataset!")
 
         # modify data types
         self.data["frame_id"] = self.data["frame_id"].astype(int)
@@ -64,56 +65,69 @@ class TrajDataset:
             self.data["agent_id"] = self.data["agent_id"].astype(int)
         self.data["pos_x"] = self.data["pos_x"].astype(float)
         self.data["pos_y"] = self.data["pos_y"].astype(float)
-
-        agent_ids = pd.unique(self.data["agent_id"])
+        self.data["label"] = self.data["label"].str.lower()  # search with lower-case labels
 
         # fill scene_id
-        # FIXME:
         if "scene_id" not in self.data:
             self.data["scene_id"] = 0
 
         # fill timestamps based on frame_id and video_fps
         if "timestamp" not in self.data:
-            self.data["timestamp"] = self.data["frame_id"] / self.fps
+            self.data["timestamp"] = self.data["frame_id"] / fps
 
         # fill groupmates
+        agent_ids = pd.unique(self.data["agent_id"])
         for agent_id in agent_ids:
             if agent_id not in self.groupmates:
                 self.groupmates[agent_id] = []
 
+        # down/up sampling frames
+        if sampling_rate >= 2:
+            # FixMe: down-sampling
+            sampling_rate = int(sampling_rate)
+            self.data = self.data.loc[(self.data["frame_id"] % sampling_rate) == 0]
+            self.data = self.data.reset_index()
+        elif sampling_rate < (1-1E-2):
+            # TODO: interpolation
+            pass
+        else:pass
+
+        # remove the trajectories shorter than 2 frames
+        data_grouped = self.data.groupby(["scene_id", "agent_id"])
+        single_length_inds = data_grouped.head(1).index[data_grouped.size() < 2]
+        self.data = self.data.drop(single_length_inds)
+
         # fill velocities
         if "vel_x" not in self.data:
-            self.data["vel_x"] = None
-            self.data["vel_y"] = None
-            self.data["vel_x"] = self.data["vel_x"].astype(float)
-            self.data["vel_y"] = self.data["vel_y"].astype(float)
+            data_grouped = self.data.groupby(["scene_id", "agent_id"])
+            dt = data_grouped["timestamp"].diff()
 
-            # ============================================
-            for agent_id in agent_ids:
-                print('calc velocity for', agent_id)
-                indices_for_agent_id = np.nonzero((self.data["agent_id"] == agent_id).to_numpy())
-                if len(indices_for_agent_id[0]) < 2: continue
+            if (dt > 2).sum():
+                print('Warning! too big dt in [%s]' % self.title)
 
-                traj_df = self.data.iloc[indices_for_agent_id]
-                dt = traj_df["timestamp"].diff()
-                dt.iloc[0] = dt.iloc[1]
+            self.data["vel_x"] = (data_grouped["pos_x"].diff() / dt).astype(float)
+            self.data["vel_y"] = (data_grouped["pos_y"].diff() / dt).astype(float)
+            nan_inds = np.array(np.nonzero(dt.isnull().to_numpy())).reshape(-1)
+            self.data["vel_x"].iloc[nan_inds] = self.data["vel_x"].iloc[nan_inds + 1].to_numpy()
+            self.data["vel_y"].iloc[nan_inds] = self.data["vel_y"].iloc[nan_inds + 1].to_numpy()
 
-                if use_kalman_smoother:
-                    # print('Yes! Smoothing the trajectories in train_set ...')
-                    kf = KalmanModel(dt.iloc[1], n_dim=2, n_iter=7)
-                    smoothed_pos, smoothed_vel = kf.smooth(traj_df[["pos_x", "pos_y"]].to_numpy())
-                    traj_df[["vel_x", "vel_y"]] = smoothed_vel
-                else:
-                    traj_df["vel_x"] = traj_df["pos_x"].diff() / dt
-                    traj_df["vel_y"] = traj_df["pos_y"].diff() / dt
-                    traj_df["vel_x"].iloc[0] = traj_df["vel_x"].iloc[1]
-                    traj_df["vel_y"].iloc[0] = traj_df["vel_y"].iloc[1]
-                self.data["vel_x"].iloc[indices_for_agent_id] = traj_df["vel_x"]
-                self.data["vel_y"].iloc[indices_for_agent_id] = traj_df["vel_y"]
-                self.data["vel_x"].loc[indices_for_agent_id] = traj_df["vel_x"]
-                self.data["vel_y"].loc[indices_for_agent_id] = traj_df["vel_y"]
+        # ============================================
+        if use_kalman:
+            def smooth(group):
+                if len(group) < 2: return group
+                print('Smoothing trajectories %d / %d' % (group["agent_id"].iloc[0], len(data_grouped)))
+                dt = group["timestamp"].diff().iloc[1]
+                kf = KalmanModel(dt, n_dim=2, n_iter=7)
+                smoothed_pos, smoothed_vel = kf.smooth(group[["pos_x", "pos_y"]].to_numpy())
+                group["vel_x"] = smoothed_vel[:, 0]
+                group["vel_y"] = smoothed_vel[:, 1]
+                return group
+
+            data_grouped = self.data.groupby(["scene_id", "agent_id"])
+            self.data = data_grouped.apply(smooth)
+
         # compute bounding box
-        # FixMe: what if there are multiple scenes?
+        # Warning: the trajectories should belong to the same (physical) scene
         self.bbox['x']['min'] = min(self.data["pos_x"])
         self.bbox['x']['max'] = max(self.data["pos_x"])
         self.bbox['y']['min'] = min(self.data["pos_y"])
@@ -171,37 +185,20 @@ class TrajDataset:
         """:return all agent_id in data table"""
         return pd.unique(self.data["agent_id"])
 
-    def get_trajectories(self, agent_ids=[], frame_ids=[], scene_ids="", label="", columns="", to_numpy=False) -> list:
+    def get_trajectories(self, label=""):
         """
         Returns a list of trajectories
-        :param agent_ids: select specific ids, ignore if empty
-        :param frame_ids: select a time interval, ignore if empty  # TODO:
-        :param scene_ids:
-        :param label: select agents from a specific label (e.g. car), ignore if empty # TODO:
-        :param columns:
-        :param to_numpy:
+        :param label: select agents from a specific class (e.g. pedestrian), ignore if empty
         :return list of trajectories
         """
-        if not agent_ids:
-            agent_ids = pd.unique(self.data["agent_id"])
-        if not scene_ids:
-            scene_ids = pd.unique(self.data["scene_id"])
 
         trajectories = []
-        for scene_id in scene_ids:
-            for agent_id in agent_ids:
-                if columns:
-                    traj_df = self.data[columns].loc[(self.data["agent_id"] == agent_id) &
-                                                     (self.data["scene_id"] == scene_id)]
-                else:
-                    traj_df = self.data.loc[(self.data["agent_id"] == agent_id) &
-                                            (self.data["scene_id"] == scene_id)]
-                if to_numpy:
-                    trajectories.append(traj_df.to_numpy())
-                else:
-                    trajectories.append(traj_df)
+        df = self.data
+        if label:
+            label_filtered = self.data.groupby("label")
+            df = label_filtered.get_group(label.lower())
 
-        return trajectories
+        return df.groupby(["scene_id", "agent_id"])
 
     # TODO:
     def get_entries(self, agent_ids=[], frame_ids=[], label=""):
@@ -262,3 +259,23 @@ class TrajDataset:
         target_data[["vel_x", "vel_y"]] = np.matmul(tf, vels.T).T
 
         return target_data
+
+
+def merge_datasets(dataset_list, new_title=[]):
+    if len(dataset_list) < 1:
+        return TrajDataset()
+    elif len(dataset_list) == 1:
+        return dataset_list[0]
+
+    merged = dataset_list[0]
+
+    for ii in range(1, len(dataset_list)):
+        merged.data = merged.data.append(dataset_list[ii].data)
+        if dataset_list[ii].title != merged.title:
+            merged.title = merged.title + " + " + dataset_list[ii].title
+    if len(new_title):
+        merged.title = new_title
+
+    return merged
+
+

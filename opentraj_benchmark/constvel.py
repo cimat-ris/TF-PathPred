@@ -7,6 +7,7 @@ Constant-Velocity Prediction Baseline
 
 import numpy as np
 
+
 def const_vel(x_t, pred_dts):
     """
     :param x_t: 4d vector = current state (px, py, vx, vy)
