@@ -67,7 +67,7 @@ class Decoder(tf.keras.layers.Layer):
         mask = create_look_ahead_mask(x.shape[0])
         for i in range(self.num_layers):
             x, _ , _ = self.dec_layers[i](x, enc_output, training, mask)
-            return x, None
+        return x, None
     else:
         for j in range(evaluate):
             predictions = x

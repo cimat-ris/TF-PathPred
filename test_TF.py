@@ -9,7 +9,7 @@ import time
 from opentraj_benchmark.all_datasets import get_trajlets
 
 
-from tools.trajectories import obs_pred_trajectories, convert_to_traj
+from tools.trajectories import obs_pred_trajectories, convert_to_traj, obs_pred_rotated_velocities, convert_to_traj_with_rotations
 from tools.optimizer import CustomSchedule
 from tools.parameters import *
 
@@ -24,7 +24,7 @@ def test_model(test_name,path):
 
     trajectories = get_trajlets(path,test_name)[test_name[0]][:,:,:2]
 
-    Starts_train , Xm_test, Xp_test = obs_pred_trajectories(trajectories,Tobs,Tpred+Tobs)
+    Starts_train , Xm_test, Xp_test, dists, mtcs = obs_pred_rotated_velocities(trajectories,Tobs,Tpred+Tobs)
 
     Xm_test = tf.constant(Xm_test)
     Xp_test = tf.constant(Xp_test)
@@ -53,16 +53,27 @@ def test_model(test_name,path):
     for s in range(len(Xm_test)):
         print(s, end = ", ")
         start = Starts_train[s]
+        distance = dists[s]
+        mtc = mtcs[s]
         inp = Xm_test[s].numpy()
         tar = Xp_test[s].numpy()
-        pred, w = transformer(inp,inp,False,12)
+        pred, w = transformer(inp,inp[-1:],False,12)
+        pred = pred.numpy()
 
         for i in range(len(w)):
             w[i] = w[i].numpy()
 
-        inp = convert_to_traj(start,inp)
-        tar = convert_to_traj(inp[-1],tar)
-        pred = convert_to_traj(inp[-1],pred.numpy())
+
+        inp_tar = np.concatenate([inp,tar],axis = 0)
+        inp_pred = np.zeros([pred.shape[0],(inp.shape[0]+pred.shape[1]),2])
+        for i in range(pred.shape[0]):
+        	inp_pred[i] = np.concatenate([inp,pred[i]],axis = 0)
+
+        inp_tar = convert_to_traj_with_rotations(np.zeros(2),inp_tar,distance,np.eye(2))
+        inp_pred = convert_to_traj_with_rotations(np.zeros(2),inp_pred,distance,np.eye(2))
+        inp = inp_tar[:8]
+        tar = inp_tar[7:20]
+        pred = inp_pred[:,7:20,:]
 
         a,f = ADE_FDE(tar,pred)
         ade.append(a)

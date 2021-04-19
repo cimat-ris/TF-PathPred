@@ -13,13 +13,12 @@ def ADE_train(real,pred):
     # Error for ade/fde
     diff = pred - real
     res = 0.
-    for i in range(real.shape[0]+1):
-        for j in range(i):
-            aux = tf.reduce_sum(diff[:,:j,:],1)
-            aux = aux**2
-            aux = tf.sqrt(tf.reduce_sum(aux,1))
-    res = aux + res
-    return tf.reduce_sum(res)/diff.shape[0]
+    for i in range(real.shape[0]):
+        aux = tf.reduce_sum(diff[:,:i,:],1)
+        aux = aux**2
+        aux = tf.sqrt(tf.reduce_sum(aux,1))
+        res = aux + res
+    return tf.reduce_max(res)/real.shape[0]
  
 
 def ADE_FDE(real,pred):

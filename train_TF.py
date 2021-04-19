@@ -8,7 +8,7 @@ import tensorflow as tf
 from opentraj_benchmark.all_datasets import get_trajlets
 
 
-from tools.trajectories import obs_pred_trajectories, convert_to_traj
+from tools.trajectories import obs_pred_trajectories, obs_pred_rotated_velocities, convert_to_traj_with_rotations, convert_to_traj
 from tools.parameters import *
 
 
@@ -22,6 +22,9 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 
     Xm = np.zeros([1,Tobs-1,2], dtype = "float32")
     Xp = np.zeros([1,Tpred,2], dtype = "float32")
+    starts = np.array([[0,0]])
+    dists = np.array([])
+    mtcs = np.array([[[0.,0],[0,0]]])
 
     for trajectories in trajlets:
 
@@ -29,7 +32,8 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
         trajectories = trajlets[trajectories][:,:,:2]
         
         #Obtain observed and predicted diferences in trajlets
-        _ , minus, plus = obs_pred_trajectories(trajectories,Tobs,Tpred+Tobs)
+        _, minus, plus, _, _ = obs_pred_rotated_velocities(trajectories,Tobs,Tpred+Tobs)
+
         Xm = np.concatenate((Xm,minus), axis = 0)
         Xp = np.concatenate((Xp,plus), axis = 0)
 
@@ -51,7 +55,7 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
     ckpt = tf.train.Checkpoint(transformer=transformer,
                                optimizer=optimizer)
 
-    ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=5)
+    ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=1)
 
     # if a checkpoint exists, restore the latest checkpoint.
     if ckpt_manager.latest_checkpoint:
@@ -90,6 +94,8 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 
       print ('Time taken for 1 epoch: {} secs\n'.format(time.time() - start))
 
+    return transformer
+
 
 if __name__=='__main__':
 
@@ -104,24 +110,21 @@ if __name__=='__main__':
 
     #------------info for training --------------------------------
 
-    # training_names = ['ETH-hotel', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
-    # test_name = ['ETH-univ']
+    training_names = ['ETH-hotel', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
+    # training_names = ['ETH-univ','ETH-hotel']
+    test_name = ['ETH-univ']
+
+    # training_names = ['ETH-univ', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
+    # test_name = ['ETH-hotel']
 
     # training_names = ['ETH-univ','ETH-hotel', 'UCY-zara1', 'UCY-univ3']
     # test_name = ['UCY-zara2']
 
-    training_names = ['ETH-univ','ETH-hotel', 'UCY-zara2', 'UCY-univ3']
-    test_name = ['UCY-zara1']
+    # training_names = ['ETH-univ','ETH-hotel','UCY-zara2', 'UCY-univ3']
+    # test_name = ['UCY-zara1']
 
     # training_names = ['ETH-univ','ETH-hotel', 'UCY-zara1', 'UCY-zara2']
     # test_name = ['UCY-univ3']
 
 
-
-
-    train_model(training_names,test_name,args.root_path,50)
-
-    
-
-    
-    
+    transformer = train_model(training_names,test_name,args.root_path,50)
