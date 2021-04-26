@@ -19,26 +19,25 @@ def split_trajectories(traj_groups, length=8, overlap=2., static_filter_thresh=1
     trajlets = []
     trajs = [g for _, g in traj_groups]
     ts = trajs[0]["timestamp"]
+    # Delta time between the first two frames
     dt = ts.iloc[1] - ts.iloc[0]
-    eps = 1E-2
+    eps= 1E-2
 
     for tr in trajs:
+        # Too short trajectories
         if len(tr) < 2: continue
-
+        # Number of frames per trajectory
         f_per_traj = int(np.ceil((length - eps) / dt))
+        # Frames to skip to get the desired overlap
         f_step = int(np.ceil((length - overlap - eps) / dt))
-
+        # Number of frames
         n_frames = len(tr)
         for start_f in range(0, n_frames - f_per_traj, f_step):
             if static_filter_thresh < 1E-3 or \
                     np.linalg.norm(tr[["pos_x", "pos_y"]].iloc[start_f + f_per_traj].to_numpy() -
                                    tr[["pos_x", "pos_y"]].iloc[start_f].to_numpy()) > static_filter_thresh:
+                # Append the trajectory if it satisfies the non-staticness threshold above
                 trajlets.append(tr.iloc[start_f:start_f + f_per_traj])
-            # else:
-            #     print('removed short trajlet: ',
-            #           np.linalg.norm(tr[["pos_x", "pos_y"]].iloc[start_f + f_per_traj].to_numpy() -
-            #                          tr[["pos_x", "pos_y"]].iloc[start_f].to_numpy()))
-
     if to_numpy:
         trl_np_list = []
         for trl in trajlets:

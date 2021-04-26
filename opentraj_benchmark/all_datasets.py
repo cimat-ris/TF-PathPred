@@ -82,13 +82,14 @@ def get_trajlets(opentraj_root, dataset_names):
         trajlet_npy_file = os.path.join(trajlet_dir, dataset_name + '-trl.npy')
         if os.path.exists(trajlet_npy_file):
             trajlets[dataset_name] = np.load(trajlet_npy_file)
-            print("loading trajlets from: ", trajlet_npy_file)
+            print("Loading trajlets from: ", trajlet_npy_file)
         else:
             ds = get_datasets(opentraj_root, [dataset_name])[dataset_name]
             trajs = ds.get_trajectories(label="pedestrian")
             trajlets[dataset_name] = split_trajectories(trajs, to_numpy=True)
+            print(trajlets[dataset_name].shape)
             np.save(trajlet_npy_file, trajlets[dataset_name])
-            print("writing trajlets ndarray into: ", trajlet_npy_file)
+            print("Writing trajlets ndarray into: ", trajlet_npy_file)
 
     return trajlets
 
@@ -149,7 +150,7 @@ def get_datasets(opentraj_root, dataset_names):
 
             st001_ds = load_Crowds(st001_dir + '/annotation.vsp',
                                    homog_file=st003_dir + '/H.txt',
-                                   scene_id='1', use_kalman=True) 
+                                   scene_id='1', use_kalman=True)
 
             st003_ds = load_Crowds(st003_dir + '/annotation.vsp',
                                    homog_file=st003_dir + '/H.txt',
