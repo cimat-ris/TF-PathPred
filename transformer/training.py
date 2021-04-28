@@ -9,8 +9,7 @@ def loss_function(real,pred):
     diff = tf.sqrt(tf.reduce_sum(diff,[1,2]))
     return tf.math.reduce_min(diff)
 
-def ADE_train(real,pred):
-    # Error for ade/fde
+def ADE_train(real,pred, max = False):
     diff = pred - real
     res = 0.
     for i in range(real.shape[0]):
@@ -18,7 +17,10 @@ def ADE_train(real,pred):
         aux = aux**2
         aux = tf.sqrt(tf.reduce_sum(aux,1))
         res = aux + res
-    return tf.reduce_max(res)/real.shape[0]
+    if max == False:
+        return tf.reduce_min(res)/real.shape[0]
+    else:
+        return tf.reduce_max(res)/real.shape[0]
  
 
 def ADE_FDE(real,pred):
@@ -44,20 +46,21 @@ def accuracy_function(real,pred):
     return tf.math.exp(diff)
 
 @tf.function
-def train_step(inp, tar, transformer, optimizer, train_loss, train_accuracy):
-  tar_train = tar
-  tar_train = tar[:-1,:]
-  aux = tf.expand_dims(inp[-1,:],0)
-  tar_train = tf.concat([aux,tar_train], axis = 0)
+def train_step(inp, tar, transformer, optimizer, train_loss, train_accuracy, burnout = False):
+    tar_train = tar
+    tar_train = tar[:-1,:]
+    aux = tf.expand_dims(inp[-1,:],0)
+    tar_train = tf.concat([aux,tar_train], axis = 0)
 
-  with tf.GradientTape() as tape:
-    predictions, _ = transformer(inp, tar_train, True)
-    # predictions = transformer(inp, inp, True,12)
-    # loss = loss_function(tar, predictions)
-    loss = ADE_train(tar, predictions)
+    with tf.GradientTape() as tape:
+        predictions, _ = transformer(inp, tar_train, True)
+        # predictions = transformer(inp, inp, True,12)
+        # loss = loss_function(tar, predictions)
+        loss = ADE_train(tar, predictions,burnout)
 
-    gradients = tape.gradient(loss, transformer.trainable_variables)    
-    optimizer.apply_gradients(zip(gradients, transformer.trainable_variables))
+    if loss < 10 or burnout == True:
+        gradients = tape.gradient(loss, transformer.trainable_variables)    
+        optimizer.apply_gradients(zip(gradients, transformer.trainable_variables))
 
-  train_loss(loss)
-  train_accuracy(accuracy_function(tar, predictions))
+        train_loss(loss)
+        train_accuracy(accuracy_function(tar, predictions))
