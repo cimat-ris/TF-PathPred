@@ -12,15 +12,15 @@ class DecoderLayer(tf.keras.layers.Layer):
     self.att1 = Multi_headed_attention(d_model, num_heads)
     self.att2 = Multi_headed_attention(d_model, num_heads)
 
-    self.ffn = point_wise_feed_forward_network(d_model,dff)
+    # self.ffn = point_wise_feed_forward_network(d_model,dff)
 
     self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
     self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-    self.layernorm3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+    # self.layernorm3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
     self.dropout1 = tf.keras.layers.Dropout(rate)
     self.dropout2 = tf.keras.layers.Dropout(rate)
-    self.dropout3 = tf.keras.layers.Dropout(rate)
+    # self.dropout3 = tf.keras.layers.Dropout(rate)
 
   def call(self, x, enc_output, training, mask):
     attn1, attn_weights_block1 = self.att1(x, x, x, mask)
@@ -31,11 +31,11 @@ class DecoderLayer(tf.keras.layers.Layer):
     attn2 = self.dropout2(attn2, training=training)
     out2 = self.layernorm2(attn2 + out1)
 
-    ffn_output = self.ffn(out2)
-    ffn_output = self.dropout3(ffn_output, training=training)
-    out3 = self.layernorm3(ffn_output + out2)
+    # ffn_output = self.ffn(out2)
+    # ffn_output = self.dropout3(ffn_output, training=training)
+    # out3 = self.layernorm3(ffn_output + out2)
 
-    return out3, attn_weights_block1, attn_weights_block2
+    return out2, attn_weights_block1, attn_weights_block2
 
 
 class Decoder(tf.keras.layers.Layer):

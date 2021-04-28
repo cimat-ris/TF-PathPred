@@ -8,24 +8,24 @@ class EncoderLayer(tf.keras.layers.Layer):
   def __init__(self, d_model, num_heads, dff, rate=0.1):
     super(EncoderLayer, self).__init__()
     self.att = Multi_headed_attention(d_model,num_heads)
-    self.ffn = point_wise_feed_forward_network(d_model, dff)
+    # self.ffn = point_wise_feed_forward_network(d_model, dff)
 
     self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-    self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+    # self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
     self.dropout1 = tf.keras.layers.Dropout(rate)
-    self.dropout2 = tf.keras.layers.Dropout(rate)
+    # self.dropout2 = tf.keras.layers.Dropout(rate)
 
   def call(self, x, training):
     attn_output, _ = self.att(x, x, x, None)
     attn_output = self.dropout1(attn_output, training=training)
     out1 = self.layernorm1(x+attn_output)
 
-    ffn_output = self.ffn(out1)
-    ffn_output = self.dropout2(ffn_output, training=training)
-    out2 = self.layernorm2(out1+ffn_output)
+    # ffn_output = self.ffn(out1)
+    # ffn_output = self.dropout2(ffn_output, training=training)
+    # out2 = self.layernorm2(out1+ffn_output)
 
-    return out2
+    return out1
 
 
 class Encoder(tf.keras.layers.Layer):
@@ -58,6 +58,6 @@ class Encoder(tf.keras.layers.Layer):
     #This sends the data through the encoder Layers
 
     for i in range(self.num_layers):
-      x = self.enc_layers[i](x, training)
+        x = self.enc_layers[i](x, training)
 
     return x
