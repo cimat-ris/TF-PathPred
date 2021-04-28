@@ -16,7 +16,7 @@ from tools.parameters import *
 from transformer.transformer import Transformer
 from transformer.training import ADE_FDE
 
-def test_model(test_name,path, n_trajs):
+def test_model(test_name,path, n_trajs = None):
 
     trajectories = get_trajlets(path,test_name)[test_name[0]][:,:,:2]
 
@@ -47,7 +47,7 @@ def test_model(test_name,path, n_trajs):
 
     ade,fde,weights,inps,tars,preds = [],[],[],[],[],[]
     print("calculating predictions")
-    if n_trajs == True:
+    if not type(n_trajs) == int:
         A = range(len(Xm_test))
     else:
         A = range(n_trajs)
