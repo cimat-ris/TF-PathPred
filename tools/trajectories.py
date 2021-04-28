@@ -98,3 +98,22 @@ def detect_separator(trajectories,secs):
         if traj["timestamp"].iloc[i]-traj["timestamp"].iloc[0]>secs:
             break
     return i-1
+
+def traj_to_real_coordinates(traj,H):
+    if len(traj.shape) == 2:
+        cat = np.vstack([traj[:, 0], traj[:, 1], np.ones_like(traj[:, 0])]).T
+        tCat = (H @ cat.T).T
+
+        x = tCat[:, 1] / tCat[:, 2]
+        y = tCat[:, 0] / tCat[:, 2]
+        return np.vstack([x,y]).T
+    else:
+        res = []
+        for i in range(len(traj)):
+            cat = np.vstack([traj[i,:, 0], traj[i,:, 1], np.ones_like(traj[i,:, 0])]).T
+            tCat = (H @ cat.T).T
+
+            x = tCat[:, 1] / tCat[:, 2]
+            y = tCat[:, 0] / tCat[:, 2]
+            res.append(np.vstack([x,y]).T)
+        return np.array(res)
