@@ -95,16 +95,18 @@ def print_sol(inp, tar, pred, img = None):
     if type(img) == np.ndarray:
         plt.imshow(img)
 
-    plt.plot(inp[:,0],inp[:,1], color = "red")
-    plt.scatter(inp[:,0],inp[:,1], color = "red")
+    if type(inp) == np.ndarray:
+        plt.plot(inp[:,0],inp[:,1], color = "red")
+        plt.scatter(inp[:,0],inp[:,1], color = "red")
 
-    for i in range(len(pred)):
-        plt.plot(pred[i,:,0],pred[i,:,1], color = "green")
-        plt.scatter(pred[i,:,0],pred[i,:,1], color = "green")
+    if type(pred) == np.ndarray:
+        for i in range(len(pred)):
+            plt.plot(pred[i,:,0],pred[i,:,1], color = "green")
+            plt.scatter(pred[i,:,0],pred[i,:,1], color = "green")
 
-
-    plt.plot(tar[:,0],tar[:,1], color = "blue")
-    plt.scatter(tar[:,0],tar[:,1], color = "blue")
+    if type(tar) == np.ndarray:
+        plt.plot(tar[:,0],tar[:,1], color = "blue")
+        plt.scatter(tar[:,0],tar[:,1], color = "blue")
 
 if __name__ == '__main__':
 
