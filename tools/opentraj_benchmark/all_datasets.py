@@ -4,20 +4,20 @@ import yaml
 import numpy as np
 import pandas as pd
 
-from crowdscan.crowd.trajdataset import TrajDataset, merge_datasets
-from crowdscan.loader.loader_Edinburgh import loadEdinburgh
-from crowdscan.loader.loader_eth import loadETH
-from crowdscan.loader.loader_crowds import load_Crowds
-from crowdscan.loader.loader_gc import loadGC
-from crowdscan.loader.loader_hermes import loadHermes
-from crowdscan.loader.loader_ind import load_ind
-from crowdscan.loader.loader_kitti import loadKITTI
-from crowdscan.loader.loader_lcas import loadLCAS
-from crowdscan.loader.loader_pets import loadPETS
-from crowdscan.loader.loader_town import loadTownCenter
-from crowdscan.loader.loader_sdd import loadSDD_single, loadSDD_all
-from crowdscan.loader.loader_wildtrack import loadWildTrack
-from crowdscan.loader.loader_trajnet import loadTrajNet
+from tools.crowdscan.crowd.trajdataset import TrajDataset, merge_datasets
+from tools.crowdscan.loader.loader_Edinburgh import loadEdinburgh
+from tools.crowdscan.loader.loader_eth import loadETH
+from tools.crowdscan.loader.loader_crowds import load_Crowds
+from tools.crowdscan.loader.loader_gc import loadGC
+from tools.crowdscan.loader.loader_hermes import loadHermes
+from tools.crowdscan.loader.loader_ind import load_ind
+from tools.crowdscan.loader.loader_kitti import loadKITTI
+from tools.crowdscan.loader.loader_lcas import loadLCAS
+from tools.crowdscan.loader.loader_pets import loadPETS
+from tools.crowdscan.loader.loader_town import loadTownCenter
+from tools.crowdscan.loader.loader_sdd import loadSDD_single, loadSDD_all
+from tools.crowdscan.loader.loader_wildtrack import loadWildTrack
+from tools.crowdscan.loader.loader_trajnet import loadTrajNet
 
 all_dataset_names = [
     'ETH-Univ',
@@ -62,8 +62,8 @@ all_dataset_names = [
     'BN-1d-w180',
     'BN-2d-w160'
 ]
-from opentraj_benchmark.constvel import const_vel
-from opentraj_benchmark.trajlet import split_trajectories
+from tools.opentraj_benchmark.constvel import const_vel
+from tools.opentraj_benchmark.trajlet import split_trajectories
 
 
 trajnet_dataset_names = [
@@ -76,7 +76,7 @@ def get_trajlets(opentraj_root, dataset_names):
     trajlets = {}
 
     # Make a temp dir to store and load trajlets (no splitting anymore)
-    trajlet_dir = os.path.join(opentraj_root, 'trajlets')
+    trajlet_dir = os.path.join(opentraj_root, 'generated_data/trajlets')
     if not os.path.exists(trajlet_dir): os.makedirs(trajlet_dir)
     for dataset_name in dataset_names:
         trajlet_npy_file = os.path.join(trajlet_dir, dataset_name + '-trl.npy')
@@ -101,7 +101,7 @@ def get_datasets(opentraj_root, dataset_names):
     datasets = {}
 
     # Make a temp dir to store and load trajdatasets (no postprocess anymore)
-    trajdataset_dir = os.path.join(opentraj_root, 'trajdatasets')
+    trajdataset_dir = os.path.join(opentraj_root, 'generated_data/trajdatasets')
     if not os.path.exists(trajdataset_dir): os.makedirs(trajdataset_dir)
 
     for dataset_name in dataset_names:

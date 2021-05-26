@@ -3,7 +3,7 @@ import tensorflow as tf
 from .position_enc import positional_encoding
 from .attention import  Multi_headed_attention
 from .ffnn import point_wise_feed_forward_network
-from transformer.masking import create_look_ahead_mask
+from .masking import create_look_ahead_mask
 
 class DecoderLayer(tf.keras.layers.Layer):
   def __init__(self, d_model, num_heads, dff, rate=0.1):

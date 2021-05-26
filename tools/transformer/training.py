@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from transformer.masking import create_look_ahead_mask
 
 def loss_function(real,pred):
     # Error for ade/fde
