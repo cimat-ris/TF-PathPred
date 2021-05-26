@@ -19,13 +19,14 @@ from transformer.training import loss_function, accuracy_function, train_step
 def train_model(training_names, test_name, path, EPOCHS = 50):
 	# trajlets is a dictionary of trajectories, keys are the datasets names
 	trajlets = get_trajlets(path, training_names)
-
+    # Xm and Xp will hold the observations and paths-to-predict, respectively
+    # Dimensions: NxTobsx2
 	Xm = np.zeros([1,Tobs-1,2], dtype = "float32")
 	Xp = np.zeros([1,Tpred,2],  dtype = "float32")
 	starts = np.array([[0,0]])
 	dists  = np.array([])
 	mtcs   = np.array([[[0.,0],[0,0]]])
-
+	import matplotlib.pyplot as plt
 	# Process all the trajectories on the dictionary
 	for key in trajlets:
 
@@ -40,9 +41,9 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 	# Remove first element
 	Xm = Xm[1:]
 	Xp = Xp[1:]
-
 	Xm = tf.constant(Xm)
 	Xp = tf.constant(Xp)
+
 
 	#------------------------ Training -------------------------
 	# Build the model
