@@ -16,7 +16,7 @@ def base():
 	return render_template('base.html')
 
 def get_pars():
-	pars = np.load("parameters.npy")
+	pars = np.load("./tools/parameters.npy")
 	aux = pars[-1]
 	pars = pars[:-1]
 	pars = np.array(pars, dtype = int)

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from scipy.spatial.transform import Rotation
-from crowdscan.crowd.trajdataset import TrajDataset
+from tools.crowdscan.crowd.trajdataset import TrajDataset
 
 
 def read_projection_parameters(path):

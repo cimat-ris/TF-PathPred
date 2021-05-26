@@ -5,16 +5,16 @@ import numpy as np
 import tensorflow as tf
 
 
-from opentraj_benchmark.all_datasets import get_trajlets
+from tools.opentraj_benchmark.all_datasets import get_trajlets
 
 
 from tools.trajectories import obs_pred_trajectories, obs_pred_rotated_velocities, convert_to_traj_with_rotations, convert_to_traj
 from tools.parameters import *
 
 
-from transformer.transformer import Transformer
-from transformer.masking import create_look_ahead_mask
-from transformer.training import loss_function, accuracy_function, train_step
+from tools.transformer.transformer import Transformer
+from tools.transformer.masking import create_look_ahead_mask
+from tools.transformer.training import loss_function, accuracy_function, train_step
 
 def train_model(training_names, test_name, path, EPOCHS = 50):
 	# trajlets is a dictionary of trajectories, keys are the datasets names
@@ -49,7 +49,7 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 	# Build the model
 	transformer = Transformer(d_model, num_layers, num_heads, dff, Tobs, Tpred, num_modes, dropout_rate)
 
-	checkpoint_path = f"./checkpoints/train/{test_name[0]}"
+	checkpoint_path = f"./generated_data/checkpoints/train/{test_name[0]}"
 
 	ckpt = tf.train.Checkpoint(transformer=transformer,
 									optimizer=optimizer)
@@ -132,4 +132,4 @@ if __name__=='__main__':
 	# test_name = ['UCY-univ3']
 
 
-	transformer = train_model(training_names,test_name,args.root_path,12)
+	transformer = train_model(training_names,test_name,args.root_path,2)

@@ -6,15 +6,15 @@ import tensorflow as tf
 import time
 
 
-from opentraj_benchmark.all_datasets import get_trajlets
+from tools.opentraj_benchmark.all_datasets import get_trajlets
 
 
 from tools.trajectories import obs_pred_trajectories, convert_to_traj, obs_pred_rotated_velocities, convert_to_traj_with_rotations
 from tools.parameters import *
 
 
-from transformer.transformer import Transformer
-from transformer.training import ADE_FDE
+from tools.transformer.transformer import Transformer
+from tools.transformer.training import ADE_FDE
 
 def test_model(test_name,path, n_trajs = None):
 
@@ -30,7 +30,7 @@ def test_model(test_name,path, n_trajs = None):
 
     transformer = Transformer(d_model, num_layers, num_heads, dff, Tobs, Tpred, num_modes, dropout_rate)
 
-    checkpoint_path = f"./checkpoints/train/{test_name[0]}"
+    checkpoint_path = f"./generated_data/checkpoints/train/{test_name[0]}"
 
     ckpt = tf.train.Checkpoint(transformer=transformer,
                                optimizer=optimizer)
