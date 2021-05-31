@@ -58,14 +58,19 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 
 	# if a checkpoint exists, restore the latest checkpoint.
 	if ckpt_manager.latest_checkpoint:
-	  ckpt.restore(ckpt_manager.latest_checkpoint)
+	  #ckpt.restore(ckpt_manager.latest_checkpoint)
 	  print ('Latest checkpoint restored!!')
 
 
-	train_dataset = []
+	train_dataset = {"observations":[],"predictions":[]}
 	# Form the training dataset
 	for i in range(len(Xp)):
-		train_dataset.append((Xm[i],Xp[i]))
+		train_dataset["observations"].append(Xm[i])
+		train_dataset["predictions"].append(Xp[i])
+	# Get the necessary data into a tf Dataset
+	train_data = tf.data.Dataset.from_tensor_slices(train_dataset)
+	# Form batches
+	batched_train_data = train_data.batch(4)
 
 	train_loss     = tf.keras.metrics.Mean(name='train_loss')
 	train_accuracy = tf.keras.metrics.Mean(name='train_accuracy')
@@ -78,15 +83,15 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 		train_accuracy.reset_states()
 
 		# Iterate over batches
-		for (batch, (inp, tar)) in enumerate(train_dataset):
+		for (id_batch, batch) in enumerate(batched_train_data):
 			if epoch < 2:
-				train_step(inp, tar, transformer, optimizer, train_loss, train_accuracy, burnout = True)
+				train_step(batch["observations"], batch["predictions"], transformer, optimizer, train_loss, train_accuracy, burnout = True)
 			else:
-				train_step(inp, tar, transformer, optimizer, train_loss, train_accuracy)
+				train_step(batch["observations"], batch["predictions"], transformer, optimizer, train_loss, train_accuracy)
 
-			if batch % 50 == 0:
+			if id_batch % 50 == 0:
 				print ('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(
-					epoch + 1, batch, train_loss.result(), train_accuracy.result()))
+					epoch + 1, id_batch, train_loss.result(), train_accuracy.result()))
 
 		if (epoch + 1) % 6 == 0:
 			ckpt_save_path = ckpt_manager.save()
