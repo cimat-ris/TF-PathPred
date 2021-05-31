@@ -40,23 +40,23 @@ class Encoder(tf.keras.layers.Layer):
 
     self.pos_encoding = positional_encoding(maximum_position_encoding, d_model)
 
-    self.enc_layers = [EncoderLayer(d_model, num_heads, dff, rate) 
+    self.enc_layers = [EncoderLayer(d_model, num_heads, dff, rate)
                        for _ in range(num_layers)]
 
     self.dropout = tf.keras.layers.Dropout(rate)
 
   def call(self, x, training):
-    batch_size = x.shape[0]
-
-    #This only happens once
-    x = self.embedding(x)
+    batch_size    = x.shape[0]
+    sequence_size = x.shape[1]
+    # This only happens once
+    x  = self.embedding(x)
     x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
-    x += self.pos_encoding[:batch_size,:]
-    x = self.dropout(x, training=training)
+    x += tf.repeat(self.pos_encoding[:sequence_size,:],repeats=1,axis=0)
+    print(x.shape)
+    x  = self.dropout(x, training=training)
 
 
-    #This sends the data through the encoder Layers
-
+    # This sends the data through the different encoder Layers
     for i in range(self.num_layers):
         x = self.enc_layers[i](x, training)
 

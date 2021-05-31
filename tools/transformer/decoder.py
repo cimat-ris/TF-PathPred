@@ -48,23 +48,27 @@ class Decoder(tf.keras.layers.Layer):
     self.embedding = tf.keras.layers.Dense(d_model)
     self.pos_encoding = positional_encoding(maximum_position_encoding, d_model)
 
-    self.dec_layers = [DecoderLayer(d_model, num_heads, dff, rate) 
+    self.dec_layers = [DecoderLayer(d_model, num_heads, dff, rate)
                        for _ in range(num_layers)]
 
     self.dropout = tf.keras.layers.Dropout(rate)
-    
+
   def call(self, x, enc_output, training, evaluate = None):
-    batch_size = x.shape[0]
+    batch_size    = x.shape[0]
+    sequence_size = x.shape[1]
     attention_weights = []
-
+    print(x.shape)
     x = self.embedding(x)
-    x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
-    x += self.pos_encoding[:batch_size,:]
+    print(x.shape)
 
+    x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+    x += tf.repeat(self.pos_encoding[:sequence_size,:],repeats=1,axis=0)
     x = self.dropout(x, training=training)
+    print(x.shape)
 
     if evaluate == None:
-        mask = create_look_ahead_mask(x.shape[0])
+        mask = create_look_ahead_mask(x.shape[1])
+        print("Mask ",mask.shape)
         for i in range(self.num_layers):
             x, _ , _ = self.dec_layers[i](x, enc_output, training, mask)
         return x, None

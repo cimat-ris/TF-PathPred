@@ -20,7 +20,7 @@ def ADE_train(real,pred, max = False):
         return tf.reduce_min(res)/real.shape[0]
     else:
         return tf.reduce_max(res)/real.shape[0]
- 
+
 
 def ADE_FDE(real,pred):
 
@@ -46,19 +46,18 @@ def accuracy_function(real,pred):
 
 @tf.function
 def train_step(inp, tar, transformer, optimizer, train_loss, train_accuracy, burnout = False):
-    tar_train = tar
-    tar_train = tar[:-1,:]
-    aux = tf.expand_dims(inp[-1,:],0)
-    tar_train = tf.concat([aux,tar_train], axis = 0)
+    # Target
+    target_train = tar
+    target_train = tar[:,:-1,:]
+    aux          = tf.expand_dims(inp[:,-1,:],1)
+    tar_train = tf.concat([aux,target_train], axis = 1)
 
     with tf.GradientTape() as tape:
         predictions, _ = transformer(inp, tar_train, True)
-        # predictions = transformer(inp, inp, True,12)
-        # loss = loss_function(tar, predictions)
-        loss = ADE_train(tar, predictions,burnout)
+        loss = ADE_train(tar, predictions, burnout)
 
     if loss < 10 or burnout == True:
-        gradients = tape.gradient(loss, transformer.trainable_variables)    
+        gradients = tape.gradient(loss, transformer.trainable_variables)
         optimizer.apply_gradients(zip(gradients, transformer.trainable_variables))
 
         train_loss(loss)
