@@ -61,19 +61,21 @@ def obs_pred_trajectories(trajectories, separator = 8, f_per_traj = 20):
         starts.append(s)
     return np.array(starts),np.array(Trajm),np.array(Trajp)
 
-def obs_pred_rotated_velocities(trajectories, separator = 8, f_per_traj = 20):
+def obs_pred_rotated_velocities(trajectories, separator = 8, f_per_traj = 20, plot=False):
     # Number of trajectories in the dataset
-    N_t = len(trajectories)
+    N_t    = len(trajectories)
     Trajm  = []
     Trajp  = []
     starts = []
     rot_mtcs = []
     dists = []
-    fig,ax = plt.subplots(1)
-    plt.margins(0, 0)
-    plt.gca().set_axis_off()
-    plt.gca().xaxis.set_major_locator(plt.NullLocator())
-    plt.gca().yaxis.set_major_locator(plt.NullLocator())
+    # To plot the trajectory dataset
+    if plot:
+        fig,ax = plt.subplots(1)
+        plt.margins(0, 0)
+        plt.gca().set_axis_off()
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
     # Scan for all the trajctories (they come )
     for tr in trajectories:
@@ -87,18 +89,19 @@ def obs_pred_rotated_velocities(trajectories, separator = 8, f_per_traj = 20):
         # In case we have not seen one single significant displacement
         if i==tr.shape[0]:
             return
-        # Get the x,y
+        # Get the x,y coordinates
         b,a = tr[i]
         d = np.linalg.norm(tr[i])
         # When the displacemnt is very small, we scale by a fixed quanttity
         if d<0.2:
             d=0.2
         rot_matrix = np.array([[b/d,a/d],[-a/d,b/d]])
-        # Scaling the trajetory with respect to the length of the first displacement
+        # Scaling the trajectory with respect to the length of the first non-null displacement
         tr = tr/d
         # Rotate tr with the inverse
         tr = tr.dot(rot_matrix.T)
-        ax.plot(tr[:,0],tr[:,1])
+        if plot:
+            ax.plot(tr[:,0],tr[:,1])
         # Get displacements from differences in absolute positions
         _ , tr = convert_to_displacements(tr)
         # Keep the rotation inverse
@@ -113,7 +116,8 @@ def obs_pred_rotated_velocities(trajectories, separator = 8, f_per_traj = 20):
         rot_mtcs.append(rot_matrix)
         # The normalizing distances
         dists.append(d)
-    plt.show()
+    if plot:
+        plt.show()
     return np.array(starts), np.array(Trajm),np.array(Trajp), np.array(dists), np.array(rot_mtcs)
 
 def detect_separator(trajectories,secs):
