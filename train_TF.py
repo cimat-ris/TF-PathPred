@@ -3,6 +3,9 @@ import time
 import argparse
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
+
+tf.config.run_functions_eagerly(True)
 
 
 from tools.opentraj_benchmark.all_datasets import get_trajlets
@@ -21,15 +24,13 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 	trajlets = get_trajlets(path, training_names)
     # Xm and Xp will hold the observations and paths-to-predict, respectively
     # Dimensions: NxTobsx2
-	Xm = np.zeros([1,Tobs-1,2], dtype = "float32")
-	Xp = np.zeros([1,Tpred,2],  dtype = "float32")
+	Xm     = np.zeros([1,Tobs-1,2], dtype = "float32")
+	Xp     = np.zeros([1,Tpred,2],  dtype = "float32")
 	starts = np.array([[0,0]])
 	dists  = np.array([])
 	mtcs   = np.array([[[0.,0],[0,0]]])
-	import matplotlib.pyplot as plt
 	# Process all the trajectories on the dictionary
 	for key in trajlets:
-
 		# Get just the position information
 		trajectories = trajlets[key][:,:,:2]
 		print("Reading: ",trajectories.shape[0]," trajectories from ",key)
@@ -70,40 +71,42 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 	# Get the necessary data into a tf Dataset
 	train_data = tf.data.Dataset.from_tensor_slices(train_dataset)
 	# Form batches
-	batched_train_data = train_data.batch(4)
+	batched_train_data   = train_data.batch(32)
+	num_batches_per_epoch= batched_train_data.cardinality().numpy()
 
-	train_loss     = tf.keras.metrics.Mean(name='train_loss')
 	train_accuracy = tf.keras.metrics.Mean(name='train_accuracy')
+
+	train_loss_results   = []
 
 	# Main training loop
 	for epoch in range(EPOCHS):
 		start = time.time()
-
-		train_loss.reset_states()
 		train_accuracy.reset_states()
-
+		total_loss = 0
 		# Iterate over batches
 		for (id_batch, batch) in enumerate(batched_train_data):
 			if epoch < 2:
-				train_step(batch["observations"], batch["predictions"], transformer, optimizer, train_loss, train_accuracy, burnout = True)
+				batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer, train_accuracy, burnout = True)
 			else:
-				train_step(batch["observations"], batch["predictions"], transformer, optimizer, train_loss, train_accuracy)
-
-			if id_batch % 50 == 0:
-				print ('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(
-					epoch + 1, id_batch, train_loss.result(), train_accuracy.result()))
-
+				batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer, train_accuracy)
+			total_loss+=batch_loss
+			print ('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, id_batch, batch_loss, train_accuracy.result()))
+		total_loss = total_loss/num_batches_per_epoch
+		train_loss_results.append(total_loss)
 		if (epoch + 1) % 6 == 0:
 			ckpt_save_path = ckpt_manager.save()
 			print ('Saving checkpoint for epoch {} at {}'.format(epoch+1,
 																ckpt_save_path))
 
 		print ('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1,
-														train_loss.result(),
+														total_loss,
 														train_accuracy.result()))
 
 		print ('Time taken for 1 epoch: {} secs\n'.format(time.time() - start))
-
+	fig,ax = plt.subplots(1)
+	plt.margins(0, 0)
+	plt.plot(train_loss_results)
+	plt.show()
 	return transformer
 
 
@@ -137,4 +140,4 @@ if __name__=='__main__':
 	# test_name = ['UCY-univ3']
 
 
-	transformer = train_model(training_names,test_name,args.root_path,2)
+	transformer = train_model(training_names,test_name,args.root_path,35)
