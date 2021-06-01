@@ -8,18 +8,27 @@ def loss_function(real,pred):
     diff = tf.sqrt(tf.reduce_sum(diff,[1,2]))
     return tf.math.reduce_min(diff)
 
-def ADE_train(real,pred, max = False):
-    diff = pred - real
-    res = 0.
-    for i in range(real.shape[0]):
-        aux = tf.reduce_sum(diff[:,:i,:],1)
-        aux = aux**2
-        aux = tf.sqrt(tf.reduce_sum(aux,1))
-        res = aux + res
+# real: n_batch x sequence_length x p
+# prediction: n_batch x n_modes x sequence_length x p
+def ADE_train(real,prediction, max = False):
+    sequence_length = real.shape[1]
+    n_batches       = prediction.shape[0]
+    n_modes         = prediction.shape[1]
+    real_expanded   = tf.expand_dims(real,1)
+    # diff: n_batch x n_modes x sequence_length x p
+    diff            = prediction - real_expanded
+    # Sum over time to get absolute positions and take the squares
+    losses = tf.cumsum(diff,2)**2
+    losses = tf.sqrt(tf.reduce_sum(losses,3))
+    # Average over time
+    losses = tf.reduce_sum(losses,2)/sequence_length
+    # Over the samples: take the min or the max
     if max == False:
-        return tf.reduce_min(res)/real.shape[0]
+        losses = tf.reduce_min(losses,axis=1)
     else:
-        return tf.reduce_max(res)/real.shape[0]
+        losses = tf.reduce_max(losses,axis=1)
+    # Average over batch elements
+    return tf.reduce_sum(losses)/n_batches
 
 
 def ADE_FDE(real,pred):
@@ -45,20 +54,22 @@ def accuracy_function(real,pred):
     return tf.math.exp(diff)
 
 @tf.function
-def train_step(inp, tar, transformer, optimizer, train_loss, train_accuracy, burnout = False):
+def train_step(input, target, transformer, optimizer, train_accuracy, burnout = False):
     # Target
-    target_train = tar
-    target_train = tar[:,:-1,:]
-    aux          = tf.expand_dims(inp[:,-1,:],1)
-    tar_train = tf.concat([aux,target_train], axis = 1)
-
+    target_train = target[:,:-1,:]
+    # This is to hold one position only
+    aux          = tf.expand_dims(input[:,-1,:],1)
+    # target_train will hold the last input data + the T_pred-1 first positions of the future
+    # size: n_batch x sequence_size x p
+    target_train = tf.concat([aux,target_train], axis = 1)
     with tf.GradientTape() as tape:
-        predictions, _ = transformer(inp, tar_train, True)
-        loss = ADE_train(tar, predictions, burnout)
-
-    if loss < 10 or burnout == True:
+        # Apply the tranformer network to the input
+        predictions, _ = transformer(input, target_train, True)
+        loss           = ADE_train(target, predictions, burnout)
+    if loss < 1000 or burnout == True:
         gradients = tape.gradient(loss, transformer.trainable_variables)
         optimizer.apply_gradients(zip(gradients, transformer.trainable_variables))
 
-        train_loss(loss)
-        train_accuracy(accuracy_function(tar, predictions))
+    return loss
+        # train_loss(loss)
+        #train_accuracy(accuracy_function(target, predictions))

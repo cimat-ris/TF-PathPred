@@ -57,18 +57,13 @@ class Decoder(tf.keras.layers.Layer):
     batch_size    = x.shape[0]
     sequence_size = x.shape[1]
     attention_weights = []
-    print(x.shape)
     x = self.embedding(x)
-    print(x.shape)
-
     x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
     x += tf.repeat(self.pos_encoding[:sequence_size,:],repeats=1,axis=0)
     x = self.dropout(x, training=training)
-    print(x.shape)
 
     if evaluate == None:
         mask = create_look_ahead_mask(x.shape[1])
-        print("Mask ",mask.shape)
         for i in range(self.num_layers):
             x, _ , _ = self.dec_layers[i](x, enc_output, training, mask)
         return x, None
