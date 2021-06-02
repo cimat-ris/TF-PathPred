@@ -14,21 +14,31 @@ from tools.parameters import *
 
 
 from tools.transformer.transformer import Transformer
-from tools.transformer.training import ADE_FDE
+from tools.transformer.training import min_ADE_FDE
 
 def test_model(test_name,path, n_trajs = None):
 
     trajectories = get_trajlets(path,test_name)[test_name[0]][:,:,:2]
 
     Starts_train , Xm_test, Xp_test, dists, mtcs = obs_pred_rotated_velocities(trajectories,Tobs,Tpred+Tobs)
-
     Xm_test = tf.constant(Xm_test)
-    
     Xp_test = tf.constant(Xp_test)
 
     #-------------------- Visualize solution ----------------------
 
     transformer = Transformer(d_model, num_layers, num_heads, dff, Tobs, Tpred, num_modes, dropout_rate)
+    test_dataset = {"observations":[],"predictions":[],"starts":[],"distances":[],"mtcs":[]}
+    # Form the training dataset
+    for i in range(len(Xp_test)):
+        test_dataset["observations"].append(Xm_test[i])
+        test_dataset["predictions"].append(Xp_test[i])
+        test_dataset["starts"].append(Starts_train[i])
+        test_dataset["distances"].append(dists[i])
+        test_dataset["mtcs"].append(mtcs[i])
+    # Get the necessary data into a tf Dataset
+    test_data = tf.data.Dataset.from_tensor_slices(test_dataset)
+    # Form batches
+    batched_test_data    = test_data.batch(32)
 
     checkpoint_path = f"./generated_data/checkpoints/train/{test_name[0]}"
 
@@ -45,48 +55,47 @@ def test_model(test_name,path, n_trajs = None):
         print('No model trained for this particular dataset')
         return None
 
-    ade,fde,weights,inps,tars,preds = [],[],[],[],[],[]
-    print("calculating predictions")
-    if not type(n_trajs) == int:
-        A = range(len(Xm_test))
-    else:
-        A = range(n_trajs)
-    for s in A:
-        print(s, end = ", ")
-        start = Starts_train[s]
-        distance = dists[s]
-        mtc = mtcs[s]
-        inp = Xm_test[s].numpy()
-        tar = Xp_test[s].numpy()
-        aux = Xm_test[0].numpy()[-1:]
-        pred, w = transformer(inp,inp[-1:],False,12)
-        pred = pred.numpy()
-        # print(inp[-1])
-        # print(pred)
-
-        inp_tar = np.concatenate([inp,tar],axis = 0)
-        inp_pred = np.zeros([pred.shape[0],(inp.shape[0]+pred.shape[1]),2])
-        for i in range(pred.shape[0]):
-        	inp_pred[i] = np.concatenate([inp,pred[i]],axis = 0)
-
-        inp_tar = convert_to_traj_with_rotations(start,inp_tar,distance,mtc)
+    all_ade          = np.zeros([32,1])
+    all_fde          = np.zeros([32,1])
+    all_observations = np.zeros([32,7,2])
+    all_ground_truth = np.zeros([32,13,2])
+    all_predictions  = np.zeros([32,20,13,2])
+    weights = [],[],[],[]
+    print("Calculating predictions")
+    for batch in batched_test_data:
+        start    = batch["starts"]
+        distance = batch["distances"]
+        mtc    = batch["mtcs"]
+        input  = batch["observations"]
+        target = batch["predictions"]
+        pred, w= transformer(input,input[:,-1:],False,12)
+        # Reconstruct full trajectory: n_batch x sequence_lenth x p
+        inp_tar = np.concatenate([input,target],axis = 1)
+        inp_pred= np.zeros([pred.shape[0],pred.shape[1],(input.shape[1]+pred.shape[2]),2])
+        # Stack the modes
+        for i in range(pred.shape[1]):
+        	inp_pred[:,i] = np.concatenate([input,pred[:,i]],axis = 1)
+        # Reconstruct GT trajectory
+        inp_tar  = convert_to_traj_with_rotations(start,inp_tar,distance,mtc)
+        # Reconstruct predicted trajectory
         inp_pred = convert_to_traj_with_rotations(start,inp_pred,distance,mtc)
-        inp = inp_tar[:8]
-        tar = inp_tar[7:20]
-        pred = inp_pred[:,7:20,:]
-
-        a,f = ADE_FDE(tar,pred)
-        ade.append(a)
-        fde.append(f)
-        inps.append(inp)
-        tars.append(tar)
-        preds.append(pred)
-        # print(Xm_test[s].numpy()-(inp[:-1]-inp[1:]),Xp_test[s].numpy()-tar[:-1])
-
-    trajs=[np.array(inps),np.array(tars),np.array(preds)]
-    print("ADE:", np.mean(ade),"FDE:", np.mean(fde))
-
-    return ade,fde,None,trajs,transformer
+        # Observations
+        observations  = inp_tar[:,:7]
+        ground_truth  = inp_tar[:,7:]
+        predictions   = inp_pred[:,:,7:]
+        #print(ground_truth.shape)
+        #print(predictions.shape)
+        #print(ground_truth[:,6])
+        #print(predictions[:,0,6])
+        a,f = min_ADE_FDE(ground_truth,predictions)
+        all_ade          = np.concatenate([all_ade,a],axis=0)
+        all_fde          = np.concatenate([all_fde,f],axis=0)
+        all_observations = np.concatenate([all_observations,observations],axis=0)
+        all_ground_truth = np.concatenate([all_ground_truth,ground_truth],axis=0)
+        all_predictions  = np.concatenate([all_predictions,predictions],axis=0)
+    trajs=[all_observations,all_ground_truth,all_predictions]
+    print("ADE:", np.mean(all_ade),"FDE:", np.mean(all_fde))
+    return all_ade,all_fde,None,trajs,transformer
 
 #------------------------------ plot solution ----------------------------
 
@@ -127,5 +136,3 @@ if __name__ == '__main__':
     # test_name = ['UCY-univ3']
 
     test_model(test_name,args.root_path)
-
-    
