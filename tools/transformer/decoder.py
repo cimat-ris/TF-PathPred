@@ -25,11 +25,11 @@ class DecoderLayer(tf.keras.layers.Layer):
   def call(self, x, enc_output, training, mask):
     attn1, attn_weights_block1 = self.att1(x, x, x, mask)
     attn1 = self.dropout1(attn1, training=training)
-    out1 = self.layernorm1(x + attn1)
+    out1  = self.layernorm1(x + attn1)
 
     attn2, attn_weights_block2 = self.att2(enc_output, enc_output, out1, None)
     attn2 = self.dropout2(attn2, training=training)
-    out2 = self.layernorm2(attn2 + out1)
+    out2  = self.layernorm2(attn2 + out1)
 
     # ffn_output = self.ffn(out2)
     # ffn_output = self.dropout3(ffn_output, training=training)
@@ -58,10 +58,9 @@ class Decoder(tf.keras.layers.Layer):
     sequence_size = x.shape[1]
     attention_weights = []
     x = self.embedding(x)
-    x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
-    x += tf.repeat(self.pos_encoding[:sequence_size,:],repeats=1,axis=0)
+    x*= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+    x+= tf.repeat(self.pos_encoding[:sequence_size,:],repeats=1,axis=0)
     x = self.dropout(x, training=training)
-
     if evaluate == None:
         mask = create_look_ahead_mask(x.shape[1])
         for i in range(self.num_layers):
@@ -70,14 +69,12 @@ class Decoder(tf.keras.layers.Layer):
     else:
         for j in range(evaluate):
             predictions = x
-            mask = create_look_ahead_mask(predictions.shape[0])
+            mask = create_look_ahead_mask(predictions.shape[1])
             for i in range(self.num_layers):
                 predictions, block1, block2 = self.dec_layers[i](predictions, enc_output, training, mask)
                 attention_weights.append(block1)
                 attention_weights.append(block2)
-            prediction = tf.expand_dims(predictions[-1,:],0)
-            x = tf.concat([x,prediction], axis = 0)
-        x = x[-evaluate:]
-
-
+            prediction = tf.expand_dims(predictions[:,-1,:],1)
+            x = tf.concat([x,prediction], axis = 1)
+        x = x[:,-evaluate:]
     return x, attention_weights

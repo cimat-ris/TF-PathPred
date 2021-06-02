@@ -26,13 +26,15 @@ def convert_to_traj(s,changes):
     return res
 
 def convert_to_traj_with_rotations(s, changes, d=1, mtc=np.array([[1.,0],[0,1]]) ):
-
-    if len(changes.shape) == 2:
-        n = changes.shape[0]
-        res = np.zeros([n+1,2])
+    print(changes.shape)
+    print(s.shape)
+    if len(changes.shape) == 3:
+        # Sequence length
+        n = changes.shape[1]
+        res = np.zeros([changes.shape[0],n+1,2])
         for i in range(n):
-            res[i+1] = res[i]+changes[i]
-        res = res*d
+            res[:,i+1] = res[:,i]+changes[:,i]
+        res = tf.math.scalar_mul(d, res)
         res = res.dot(mtc.T)
         res = res + s
 

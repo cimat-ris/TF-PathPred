@@ -19,7 +19,7 @@ class multi_modal(tf.keras.layers.Layer):
     modes = []
     for i in range(self.num_modes):
         modes.append(self.dense[i](dec_output))
-    # Stack in the 2nd dimension    
+    # Stack in the 2nd dimension
     return tf.stack(modes,axis=1)
 
 # Our Transformer model
