@@ -28,26 +28,33 @@ def convert_to_traj(s,changes):
 def convert_to_traj_with_rotations(s, changes, d=1, mtc=np.array([[1.,0],[0,1]]) ):
     print(changes.shape)
     print(s.shape)
+    # For a single trajectory, n_batch x sequence_lenth x p
     if len(changes.shape) == 3:
         # Sequence length
-        n = changes.shape[1]
-        res = np.zeros([changes.shape[0],n+1,2])
-        for i in range(n):
+        sequence_length = changes.shape[1]
+        res = np.zeros([changes.shape[0],sequence_length+1,2])
+        for i in range(sequence_length):
             res[:,i+1] = res[:,i]+changes[:,i]
-        res = tf.math.scalar_mul(d, res)
-        res = res.dot(mtc.T)
-        res = res + s
-
+        d   = tf.expand_dims(tf.expand_dims(d,1),2)
+        # Scale the elements of res by factor d
+        res = tf.math.multiply(d, res)
+        # Apply inverse rotation
+        res = tf.matmul(res,mtc)
+        # Translates
+        res = res + tf.expand_dims(s,1)
     else:
-        l = changes.shape[0]
-        n = changes.shape[1]
-        res = np.zeros([l,n+1,2])
-        for i in range(l):
-            for j in range(n):
-                res[i,j+1] = res[i,j]+changes[i,j]
-            res[i] = res[i]*d
-            res[i] = res[i].dot(mtc.T)
-            res[i] = res[i] + s
+        # For multiple trajectories, n_batch x n_modes x sequence_lenth x p
+        n_batch         = changes.shape[0]
+        n_modes         = changes.shape[1]
+        sequence_length = changes.shape[2]
+        res = np.zeros([n_batch,n_modes,sequence_length+1,2])
+        d   = tf.expand_dims(tf.expand_dims(d,1),2)
+        for i in range(n_modes):
+            for j in range(sequence_length):
+                res[:,i,j+1] = res[:,i,j]+changes[:,i,j]
+            res[:,i] = tf.math.multiply(d, res[:,i])
+            res[:,i] = tf.matmul(res[:,i],mtc)
+            res[:,i] = res[:,i] + tf.expand_dims(s,1)
 
     return res
 
@@ -114,8 +121,8 @@ def obs_pred_rotated_velocities(trajectories, separator = 8, f_per_traj = 20, pl
         Trajp.append(np.array(tr[range(separator-1,f_per_traj-1),:], dtype = 'f'))
         # Keep absolute starting point
         starts.append(s)
-        # Keep rotation matrix
-        rot_mtcs.append(rot_matrix)
+        # Keep the inverse of the rotation matrix
+        rot_mtcs.append(rot_matrix.T)
         # The normalizing distances
         dists.append(d)
     if plot:
