@@ -90,7 +90,8 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 			else:
 				batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer, train_accuracy)
 			total_loss+=batch_loss
-			print ('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, id_batch, batch_loss, train_accuracy.result()))
+			if id_batch%10==0:
+				print ('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, id_batch, batch_loss, train_accuracy.result()))
 		total_loss = total_loss/num_batches_per_epoch
 		train_loss_results.append(total_loss)
 		if (epoch + 1) % 6 == 0:
@@ -140,4 +141,4 @@ if __name__=='__main__':
 	# test_name = ['UCY-univ3']
 
 
-	transformer = train_model(training_names,test_name,args.root_path,35)
+	transformer = train_model(training_names,test_name,args.root_path,45)
