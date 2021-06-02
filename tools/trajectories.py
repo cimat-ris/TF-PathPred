@@ -26,8 +26,6 @@ def convert_to_traj(s,changes):
     return res
 
 def convert_to_traj_with_rotations(s, changes, d=1, mtc=np.array([[1.,0],[0,1]]) ):
-    print(changes.shape)
-    print(s.shape)
     # For a single trajectory, n_batch x sequence_lenth x p
     if len(changes.shape) == 3:
         # Sequence length

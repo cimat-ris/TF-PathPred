@@ -31,18 +31,16 @@ def ADE_train(real,prediction, max = False):
     return tf.reduce_sum(losses)/n_batches
 
 
-def ADE_FDE(real,pred):
-
-    n = real.shape[0]
-    diff = pred - real
+def min_ADE_FDE(ground_truth,prediction):
+    sequence_lenth = ground_truth.shape[1]
+    diff = prediction - tf.expand_dims(ground_truth,1)
     diff = diff**2
-    FDE = diff[:,-1,:]
-    FDE = tf.sqrt(tf.reduce_sum(FDE,axis = 1))
-    FDE = tf.math.reduce_min(FDE)
-
-    diff = tf.reduce_sum(diff,[1,2])/n
-    ADE = tf.math.reduce_min(diff)
-
+    # Evaluate FDE
+    FDE = diff[:,:,-1,:]
+    FDE = tf.sqrt(tf.reduce_sum(FDE,axis = 2))
+    FDE = tf.math.reduce_min(FDE,axis=1,keepdims=True)
+    diff= tf.reduce_sum(diff,[2,3])/sequence_lenth
+    ADE = tf.math.reduce_min(diff,axis=1,keepdims=True)
     return ADE.numpy(),FDE.numpy()
 
 
