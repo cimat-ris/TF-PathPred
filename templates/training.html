@@ -1,0 +1,29 @@
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Train</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+          <div class="btn-group mr-2">
+            <button class="btn btn-sm btn-outline-secondary" type="submit" form="form2">Train</button>
+          </div>
+        </div>
+      </div>
+
+      <form method="post" id="form2" action="{{ url_for('train_h') }}">
+        <label for="epochs">Give a number of epochs</sub>:</label><br>
+        <input type="text" id="Tobs" name="Tobs" value={{ Tobs }}><br>
+        <label for="tra-m">Select the datasets this model is going to predict</sub>:</label><br>
+        <select name="tra-m" id="tra-m">
+          <option value="ETH-univ">ETH-univ</option>
+          <option value="ETH-hotel">ETH-hotel</option>
+          <option value="UCY-zara1">UCY-zara1</option>
+          <option value="UCY-zara2">UCY-zara2</option>
+          <option value="UCY-univ3">UCY-zara3</option>
+        </select><br><br><br>
+        <label for="Tobs">Select the datasets you wish to train with</sub>:</label><br>
+        <input type="checkbox" id="ETH-univ" name="ETH-univ" value= "1"> ETH-univ
+        <input type="checkbox" id="ETH-hotel" name="ETH-hotel" value= "1"> ETH-hotel
+        <input type="checkbox" id="UCY-zara1" name="UCY-zara1" value= "1"> UCY-zara1
+        <input type="checkbox" id="UCY-zara2" name="UCY-zara2" value= "1"> UCY-zara2
+        <input type="checkbox" id="UCY-univ3" name="UCY-univ3" value= "1"> UCY-univ3
+      </form>
+    </main>

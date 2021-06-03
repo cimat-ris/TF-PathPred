@@ -1,0 +1,21 @@
+          {% if tagg == name %}
+          <li class="nav-item">
+            <a class="nav-link active" href="#">
+              <span data-feather={{icon}}></span>
+              {{name}} <span class="sr-only">(current)</span>
+            </a>
+          </li>
+          {% else %}
+          <li class="nav-item">
+            {% if name == "Training" %}
+            <a class="nav-link" href="{{ url_for('training') }}">
+            {% elif name == "Parameters" %}
+            <a class="nav-link" href= "{{ url_for('parameters', mode = 'view') }}">
+            {% else %}
+              <a class="nav-link" href="#">
+            {% endif %}
+              <span data-feather={{icon}}></span>
+              {{name}}
+            </a>
+          </li>
+          {% endif %}

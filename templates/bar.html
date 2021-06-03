@@ -1,0 +1,38 @@
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+      <div class="sidebar-sticky pt-3">
+        <ul class="nav flex-column">
+          {%  with name = "Training", icon = "play" %}
+            {% include "entry.html" %}
+          {% endwith %}
+          
+          {%  with name = "Parameters", icon = "type" %}
+            {% include "entry.html" %}
+          {% endwith %}
+        </ul>
+
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+          <span>Visualize</span>
+        </h6>
+        <ul class="nav flex-column mb-2">
+          {%  with name = "ETH-univ", icon = "file-text" %}
+            {% include "entry.html" %}
+          {% endwith %}
+          
+          {%  with name = "ETH-hotel", icon = "file-text" %}
+            {% include "entry.html" %}
+          {% endwith %}
+
+          {%  with name = "UCY-zara01", icon = "file-text" %}
+            {% include "entry.html" %}
+          {% endwith %}
+
+          {%  with name = "UCY-zara02", icon = "file-text" %}
+            {% include "entry.html" %}
+          {% endwith %}
+          
+          {%  with name = "UCY-zara03", icon = "file-text" %}
+            {% include "entry.html" %}
+          {% endwith %}
+        </ul>
+      </div>
+    </nav>
