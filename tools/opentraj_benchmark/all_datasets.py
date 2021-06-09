@@ -81,6 +81,7 @@ def get_trajlets(opentraj_root, dataset_names):
     for dataset_name in dataset_names:
         trajlet_npy_file = os.path.join(trajlet_dir, dataset_name + '-trl.npy')
         if os.path.exists(trajlet_npy_file):
+        #if False:
             trajlets[dataset_name] = np.load(trajlet_npy_file)
             print("Loading trajlets from: ", trajlet_npy_file)
         else:
@@ -107,6 +108,7 @@ def get_datasets(opentraj_root, dataset_names):
     for dataset_name in dataset_names:
         dataset_h5_file = os.path.join(trajdataset_dir, dataset_name + '.h5')
         if os.path.exists(dataset_h5_file):
+        #if False:
             datasets[dataset_name] = TrajDataset()
             datasets[dataset_name].data = pd.read_pickle(dataset_h5_file)
             datasets[dataset_name].title = dataset_name
@@ -124,6 +126,7 @@ def get_datasets(opentraj_root, dataset_names):
         elif 'eth-hotel' == dataset_name.lower():
             eth_hotel_root = os.path.join(opentraj_root, 'datasets/ETH/seq_hotel/obsmat.txt')
             datasets[dataset_name] = loadETH(eth_hotel_root, title=dataset_name, scene_id='Hotel')
+            print(datasets[dataset_name])
         # ******************************
 
         # ========== UCY ==============

@@ -32,15 +32,16 @@ def ADE_train(real,prediction, max = False):
 
 
 def min_ADE_FDE(ground_truth,prediction):
-    sequence_lenth = ground_truth.shape[1]
+    sequence_length = ground_truth.shape[1]
     diff = prediction - tf.expand_dims(ground_truth,1)
     diff = diff**2
     # Evaluate FDE
     FDE = diff[:,:,-1,:]
-    FDE = tf.sqrt(tf.reduce_sum(FDE,axis = 2))
+    FDE = tf.norm(FDE,axis=2)
     FDE = tf.math.reduce_min(FDE,axis=1,keepdims=True)
-    diff= tf.reduce_sum(diff,[2,3])/sequence_lenth
-    ADE = tf.math.reduce_min(diff,axis=1,keepdims=True)
+    # Evaluate ADE    
+    ADE = tf.norm(diff,axis=3)
+    ADE = tf.math.reduce_min(tf.math.reduce_mean(ADE,axis=2),axis=1,keepdims=True)
     return ADE.numpy(),FDE.numpy()
 
 
