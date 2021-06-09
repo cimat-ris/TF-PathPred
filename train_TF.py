@@ -9,12 +9,8 @@ tf.config.run_functions_eagerly(True)
 
 
 from tools.opentraj_benchmark.all_datasets import get_trajlets
-
-
 from tools.trajectories import obs_pred_trajectories, obs_pred_rotated_velocities, convert_to_traj_with_rotations, convert_to_traj
 from tools.parameters import *
-
-
 from tools.transformer.transformer import Transformer
 from tools.transformer.masking import create_look_ahead_mask
 from tools.transformer.training import loss_function, accuracy_function, train_step
@@ -71,7 +67,7 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 	# Get the necessary data into a tf Dataset
 	train_data = tf.data.Dataset.from_tensor_slices(train_dataset)
 	# Form batches
-	batched_train_data   = train_data.batch(32)
+	batched_train_data   = train_data.batch(128)
 	num_batches_per_epoch= batched_train_data.cardinality().numpy()
 
 	train_accuracy = tf.keras.metrics.Mean(name='train_accuracy')
@@ -104,6 +100,7 @@ def train_model(training_names, test_name, path, EPOCHS = 50):
 														train_accuracy.result()))
 
 		print ('Time taken for 1 epoch: {} secs\n'.format(time.time() - start))
+    # PLot
 	fig,ax = plt.subplots(1)
 	plt.margins(0, 0)
 	plt.plot(train_loss_results)

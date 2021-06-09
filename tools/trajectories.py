@@ -92,10 +92,10 @@ def obs_pred_rotated_velocities(trajectories, separator = 8, f_per_traj = 20, pl
         tr = tr - s
         # Goes to the first non-zero position
         i  = 0
-        while not np.linalg.norm(tr[i]) > 0 and i<tr.shape[0]: i+=1
+        while i<tr.shape[0] and not np.linalg.norm(tr[i]) > 0: i+=1
         # In case we have not seen one single significant displacement
-        if i==tr.shape[0]:
-            return
+        if i>=tr.shape[0]:
+            continue
         # Get the x,y coordinates
         b,a = tr[i]
         d = np.linalg.norm(tr[i])

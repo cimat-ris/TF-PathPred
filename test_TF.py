@@ -41,7 +41,7 @@ def test_model(test_name,path, n_trajs = None):
     batched_test_data    = test_data.batch(32)
 
     checkpoint_path = f"./generated_data/checkpoints/train/{test_name[0]}"
-
+    print(checkpoint_path)
     ckpt = tf.train.Checkpoint(transformer=transformer,
                                optimizer=optimizer)
 
@@ -50,7 +50,7 @@ def test_model(test_name,path, n_trajs = None):
     # if a checkpoint exists, restore the latest checkpoint.
     if ckpt_manager.latest_checkpoint:
         ckpt.restore(ckpt_manager.latest_checkpoint)
-        print('Latest checkpoint restored!!')
+        print('Latest checkpoint restored!!',ckpt_manager.latest_checkpoint)
     else:
         print('No model trained for this particular dataset')
         return None
@@ -59,7 +59,7 @@ def test_model(test_name,path, n_trajs = None):
     all_fde          = np.zeros([32,1])
     all_observations = np.zeros([32,7,2])
     all_ground_truth = np.zeros([32,13,2])
-    all_predictions  = np.zeros([32,20,13,2])
+    all_predictions  = np.zeros([32,num_modes,13,2])
     weights = [],[],[],[]
     print("Calculating predictions")
     for batch in batched_test_data:
@@ -68,7 +68,7 @@ def test_model(test_name,path, n_trajs = None):
         mtc    = batch["mtcs"]
         input  = batch["observations"]
         target = batch["predictions"]
-        pred, w= transformer(input,input[:,-1:],False,12)
+        pred, w= transformer(input,input[:,-1:],training=False,evaluate=12)
         # Reconstruct full trajectory: n_batch x sequence_lenth x p
         inp_tar = np.concatenate([input,target],axis = 1)
         inp_pred= np.zeros([pred.shape[0],pred.shape[1],(input.shape[1]+pred.shape[2]),2])
@@ -93,7 +93,9 @@ def test_model(test_name,path, n_trajs = None):
         all_observations = np.concatenate([all_observations,observations],axis=0)
         all_ground_truth = np.concatenate([all_ground_truth,ground_truth],axis=0)
         all_predictions  = np.concatenate([all_predictions,predictions],axis=0)
-    trajs=[all_observations,all_ground_truth,all_predictions]
+    trajs=[all_observations[32:],all_ground_truth[32:],all_predictions[32:]]
+    all_ade = all_ade[32:]
+    all_fde = all_fde[32:]
     print("ADE:", np.mean(all_ade),"FDE:", np.mean(all_fde))
     return all_ade,all_fde,None,trajs,transformer
 
@@ -120,7 +122,6 @@ def print_sol(inp, tar, pred, img = None):
 if __name__ == '__main__':
 
     #------------------------ Parser ---------------------------
-
     # Parser arguments
     parser = argparse.ArgumentParser(description='Train transformer')
     parser.add_argument('--root-path', '--root',
@@ -129,9 +130,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     #-------------------- Info for testing ----------------------
-    # test_name = ['ETH-univ']
+    test_name = ['ETH-univ']
     # test_name = ['ETH-hotel']
-    test_name = ['UCY-zara1']
+    # test_name = ['UCY-zara1']
     # test_name = ['UCY-zara2']
     # test_name = ['UCY-univ3']
 
