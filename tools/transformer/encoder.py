@@ -3,6 +3,7 @@ import tensorflow as tf
 from .position_enc import positional_encoding
 from .attention import  Multi_headed_attention
 from .ffnn import point_wise_feed_forward_network
+# from neighbor_attention import neighbor_attention
 
 # Encoder layer
 class EncoderLayer(tf.keras.layers.Layer):
@@ -10,13 +11,16 @@ class EncoderLayer(tf.keras.layers.Layer):
     super(EncoderLayer, self).__init__()
     # Multi-headed attention layer
     self.attention = Multi_headed_attention(d_model,num_heads)
+    self.neighbor_attention = neighbor_attention(d_model)
     self.ffn = point_wise_feed_forward_network(d_model, dff)
 
     self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
     self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+    self.layernorm3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
     self.dropout1 = tf.keras.layers.Dropout(rate)
-    self.dropout2 = tf.keras.layers.Dropout(rate)
+    # self.dropout2 = tf.keras.layers.Dropout(rate)
+    self.dropout3 = tf.keras.layers.Dropout(rate)
 
   def call(self, x, training):
     # Attention layer
@@ -24,16 +28,20 @@ class EncoderLayer(tf.keras.layers.Layer):
     attn_output    = self.dropout1(attn_output, training=training)
     # Residual connection
     out1           = self.layernorm1(x+attn_output)
-    out2           = out1
-    #ffn_output = self.ffn(out1)
-    #ffn_output = self.dropout2(ffn_output, training=training)
-    #out2 = self.layernorm2(out1+ffn_output)
+    #neighbor attention
+    # neigh_output   = self.neighbor_attention()
+    # neigh_output   = self.dropout2()
+    # out2           = self.layernorm2(out1 + neigh_output)
 
-    return out2
+    ffn_output = self.ffn(out1)
+    ffn_output = self.dropout3(ffn_output, training=training)
+    out3 = self.layernorm3(out1+ffn_output)
+
+    return out3
 
 
 class Encoder(tf.keras.layers.Layer):
-  def __init__(self, d_model, num_layers, num_heads, dff, input_size, maximum_position_encoding, rate=0.1):
+  def __init__(self, d_model, num_layers, num_heads, dff, maximum_position_encoding, rate=0.1):
     super(Encoder, self).__init__()
     #Dimensions used for interchanging between attention and the FFNN
     self.d_model    = d_model

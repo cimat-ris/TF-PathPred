@@ -7,9 +7,10 @@ Tpred = 12
 
 d_model = 128
 num_heads = 8
-num_layers = 6
-num_modes = 1
+num_layers = 3
+num_modes = 20
 dff = 512
+beta = 0.25
 dropout_rate = 0.1
 
 learning_rate = CustomSchedule(d_model)
