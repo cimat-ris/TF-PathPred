@@ -44,7 +44,7 @@ class Transformer(tf.keras.Model):
                                                      evaluate)  # [batch_size,sequence_size,d_model]
         # The output
         partition_output = self.modes(dec_output)  # [batch_size,num_modes,sequence_size,d_model]
-        return partition_output, attention_weights, NULL
+        return partition_output, attention_weights, 0
 
 
 # Our Transformer model with CVAE
@@ -54,7 +54,7 @@ class Transformer_CVAE(tf.keras.Model):
         # Encoder
         self.encoder = Encoder(d_model, num_layers, num_heads, dff, 100, rate)
         # CVAE
-        self.cvae = CVAE_attention(d_model, num_modes, rate)
+        # self.cvae = CVAE_attention(d_model, num_modes, rate)
         # Decoder
         self.decoder = Decoder(d_model, num_layers, num_heads, dff, 100, rate, num_modes=num_modes, cvae=True)
 
@@ -66,8 +66,10 @@ class Transformer_CVAE(tf.keras.Model):
         # Call the encoder on the inputs
         enc_output = self.encoder(input, training)  # [batch_size,sequence_size,d_model]
         # CVAE: Middle layer. Adds stochastic component
-        cvae_output,KL_value = self.cvae(enc_output, training)  
-        cvae_output = cvae_output + enc_output
+        # cvae_output,KL_value = self.cvae(enc_output, training)
+        # cvae_output = cvae_output + enc_output
+        cvae_output = tf.expand_dims(enc_output, axis = 1)
+        KL_value = 0
         cvae_output = tf.transpose(cvae_output, [1,0,2,3]) # [batch_size,num_modes,sequence_size,d_model]
         # Decoder: takes as input the input encoding and the partial prediction
         dec_output, attention_weights = self.decoder(x, cvae_output, training,

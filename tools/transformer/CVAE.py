@@ -20,7 +20,7 @@ class CVAE_attention(tf.keras.layers.Layer):
 
     #Attention module and query vector to obtain loc and log_scale
     self.attention = Attention(d_model)
-    self.average_query = tf.Variable(tf.ones(d_model), trainable = True)
+    self.average_query = tf.Variable(tf.ones(d_model), trainable = False)
     self.average_query = tf.expand_dims(tf.expand_dims(self.average_query, axis = 0), axis = 0)
 
     #Dense layers to obtain loc and log_scale
@@ -68,4 +68,5 @@ class CVAE_attention(tf.keras.layers.Layer):
     x = tf.reshape(x, [self.num_modes, batch_size, 1, self.d_model])
 
     #return output and value for the modified loss
-    return x, self.KL_Loss(loc_flat, log_sigma_flat)
+    aux = self.KL_Loss(loc_flat, log_sigma_flat)
+    return x, aux

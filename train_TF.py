@@ -5,11 +5,9 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-# tf.config.run_functions_eagerly(True)
-
 
 from tools.opentraj_benchmark.all_datasets import get_trajlets
-from tools.trajectories import obs_pred_trajectories, obs_pred_rotated_velocities, convert_to_traj_with_rotations, \
+from tools.trajectories import obs_pred_trajectories, obs_pred_rotated_trajectories, convert_to_traj_with_rotations, \
     convert_to_traj
 from tools.parameters import *
 from tools.transformer.transformer import Transformer, Transformer_CVAE
@@ -18,23 +16,21 @@ from tools.transformer.training import loss_function, accuracy_function, train_s
 
 
 #if beta is negative, it means cyclic annealing
-def train_model(training_names, test_name, beta = 0, path, EPOCHS=50):
+def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
     # trajlets is a dictionary of trajectories, keys are the datasets names
     trajlets = get_trajlets(path, training_names)
     # Xm and Xp will hold the observations and paths-to-predict, respectively
-    # Dimensions: NxTobsx2
+    # Dimensions: N x Tobs x 2
     Xm = np.zeros([1, Tobs - 1, 2], dtype="float32")
     Xp = np.zeros([1, Tpred, 2], dtype="float32")
-    starts = np.array([[0, 0]])
-    dists = np.array([])
-    mtcs = np.array([[[0., 0], [0, 0]]])
+
     # Process all the trajectories on the dictionary
     for key in trajlets:
         # Get just the position information
         trajectories = trajlets[key][:, :, :2]
         print("Reading: ", trajectories.shape[0], " trajectories from ", key)
-        # Obtain observed and predicted diferences in trajlets
-        _, minus, plus, _, _ = obs_pred_rotated_velocities(trajectories, Tobs, Tpred + Tobs)
+        # Obtain observed and predicted with normalized speeds and rotations in trajlets
+        _, minus, plus, _, _ = obs_pred_rotated_trajectories(trajectories, Tobs, Tpred + Tobs)
         # Append the new past parts (minus) and future parts (plus)
         Xm = np.concatenate((Xm, minus), axis=0)
         Xp = np.concatenate((Xp, plus), axis=0)
@@ -46,18 +42,18 @@ def train_model(training_names, test_name, beta = 0, path, EPOCHS=50):
 
     # ------------------------ Training -------------------------
     # Build the model
-    transformer = Transformer_CVAE(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
+    transformer = Transformer(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
 
     checkpoint_path = f"./generated_data/checkpoints/train/{test_name[0]}"
 
     ckpt = tf.train.Checkpoint(transformer=transformer,
                                optimizer=optimizer)
 
-    ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=1)
+    ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=2)
 
     # if a checkpoint exists, restore the latest checkpoint.
     if ckpt_manager.latest_checkpoint:
-        # ckpt.restore(ckpt_manager.latest_checkpoint)
+        ckpt.restore(ckpt_manager.latest_checkpoint)
         print('Latest checkpoint restored!!')
 
     train_dataset = {"observations": [], "predictions": []}
@@ -85,9 +81,10 @@ def train_model(training_names, test_name, beta = 0, path, EPOCHS=50):
         total_loss = 0
         # Iterate over batches
         for (id_batch, batch) in enumerate(batched_train_data):
-            if epoch < 2:
-                batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer,
-                                        train_accuracy, burnout=True)
+
+            if epoch < 0: #modify the value to determine how many epochs are for burnout
+                batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer, beta = beta,
+                                        burnout=True)
             else:
                 #When beta is negative, its absolute value represents the amount of cycles
                 if beta < 0:
@@ -99,14 +96,14 @@ def train_model(training_names, test_name, beta = 0, path, EPOCHS=50):
                 else: beta_aux = beta
 
                 batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer,
-                                        train_accuracy, beta = beta_aux)
+                                        beta = beta_aux)
             total_loss += batch_loss
             if id_batch % 10 == 0:
                 print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, id_batch, batch_loss,
                                                                              train_accuracy.result()))
         total_loss = total_loss / num_batches_per_epoch
         train_loss_results.append(total_loss)
-        if (epoch + 1) % 6 == 0:
+        if (epoch + 1) % 3 == 0:
             ckpt_save_path = ckpt_manager.save()
             print('Saving checkpoint for epoch {} at {}'.format(epoch + 1,
                                                                 ckpt_save_path))
@@ -152,4 +149,4 @@ if __name__ == '__main__':
     # training_names = ['ETH-univ','ETH-hotel', 'UCY-zara1', 'UCY-zara2']
     # test_name = ['UCY-univ3']
 
-    transformer = train_model(training_names, test_name, beta, args.root_path, 50)
+    transformer = train_model(training_names, test_name, args.root_path, 0, 51)

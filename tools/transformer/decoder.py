@@ -79,14 +79,20 @@ class Decoder(tf.keras.layers.Layer):
             x, _ , _ = self.dec_layers[i](x, enc_output, training, mask)
         return x, None
     else:
+        predictions = tf.identity(x)
         for j in range(evaluate):
-            predictions = x
-            mask = create_look_ahead_mask(predictions.shape[1])
+            mask = create_look_ahead_mask(predictions.shape[-2])
             for i in range(self.num_layers):
                 predictions, block1, block2 = self.dec_layers[i](predictions, enc_output, training, mask)
                 attention_weights.append(block1)
                 attention_weights.append(block2)
-            prediction = tf.expand_dims(predictions[:,-1,:],1)
-            x = tf.concat([x,prediction], axis = 1)
-        x = x[:,-evaluate:]
+            if self.cvae:
+              prediction = tf.expand_dims(predictions[:,:,-1,:], axis = -2)
+            else:
+              prediction = tf.expand_dims(predictions[:,-1,:], axis = -2)
+            x = tf.concat([x,prediction], axis = -2)
+        if self.cvae:
+          x = x[:,:,-evaluate:,:]
+        else:
+          x = x[:,-evaluate:,:]
     return x, attention_weights

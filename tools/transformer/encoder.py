@@ -11,11 +11,11 @@ class EncoderLayer(tf.keras.layers.Layer):
     super(EncoderLayer, self).__init__()
     # Multi-headed attention layer
     self.attention = Multi_headed_attention(d_model,num_heads)
-    self.neighbor_attention = neighbor_attention(d_model)
+    # self.neighbor_attention = neighbor_attention(d_model)
     self.ffn = point_wise_feed_forward_network(d_model, dff)
 
     self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-    self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+    # self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
     self.layernorm3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
     self.dropout1 = tf.keras.layers.Dropout(rate)
@@ -23,11 +23,12 @@ class EncoderLayer(tf.keras.layers.Layer):
     self.dropout3 = tf.keras.layers.Dropout(rate)
 
   def call(self, x, training):
-    # Attention layer
+    # Self-attention layer
     attn_output, _ = self.attention(x, x, x, None)
     attn_output    = self.dropout1(attn_output, training=training)
     # Residual connection
     out1           = self.layernorm1(x+attn_output)
+
     #neighbor attention
     # neigh_output   = self.neighbor_attention()
     # neigh_output   = self.dropout2()
