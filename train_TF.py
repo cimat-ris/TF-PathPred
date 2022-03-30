@@ -124,29 +124,19 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
 if __name__ == '__main__':
     # ------------------------ Parser ---------------------------
 
-    # Parser arguments
+    # Arguments parser
     parser = argparse.ArgumentParser(description='Train transformer')
     parser.add_argument('--root-path', '--root',
                         default='./',
                         help='path to folder that contain dataset')
+    parser.add_argument('--test',
+                        default='ETH-univ',
+                        help='name of the dataset to test')
     args = parser.parse_args()
 
-    # ------------info for training --------------------------------
-
-    training_names = ['ETH-hotel', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
-    # training_names = ['ETH-univ','ETH-hotel']
-    test_name = ['ETH-univ']
-
-    # training_names = ['ETH-univ', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
-    # test_name = ['ETH-hotel']
-
-    # training_names = ['ETH-univ','ETH-hotel', 'UCY-zara1', 'UCY-univ3']
-    # test_name = ['UCY-zara2']
-
-    # training_names = ['ETH-univ','ETH-hotel','UCY-zara2', 'UCY-univ3']
-    # test_name = ['UCY-zara1']
-
-    # training_names = ['ETH-univ','ETH-hotel', 'UCY-zara1', 'UCY-zara2']
-    # test_name = ['UCY-univ3']
-
-    transformer = train_model(training_names, test_name, args.root_path, 0, 51)
+    # ------------info for training -------------------------------
+    datasets_names = ['ETH-hotel', 'ETH-univ', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
+    datasets_test = [dataset for dataset in datasets_names if dataset==args.test]
+    datasets_train = [dataset for dataset in datasets_names if dataset!=args.test]
+    # Train the model
+    transformer = train_model(datasets_train, datasets_test, args.root_path, 0, 51)
