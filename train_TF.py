@@ -21,8 +21,8 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
     trajlets = get_trajlets(path, training_names)
     # Xm and Xp will hold the observations and paths-to-predict, respectively
     # Dimensions: N x Tobs x 2
-    Xm = np.zeros([1, Tobs - 1, 2], dtype="float32")
-    Xp = np.zeros([1, Tpred, 2], dtype="float32")
+    observations = np.zeros([1, Tobs - 1, 2], dtype="float32")
+    groundtruth  = np.zeros([1, Tpred, 2], dtype="float32")
 
     # Process all the trajectories on the dictionary
     for key in trajlets:
@@ -32,13 +32,13 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
         # Obtain observed and predicted with normalized speeds and rotations in trajlets
         _, minus, plus, _, _ = obs_pred_rotated_trajectories(trajectories, Tobs, Tpred + Tobs)
         # Append the new past parts (minus) and future parts (plus)
-        Xm = np.concatenate((Xm, minus), axis=0)
-        Xp = np.concatenate((Xp, plus), axis=0)
+        observations = np.concatenate((observations, minus), axis=0)
+        groundtruth = np.concatenate((groundtruth, plus), axis=0)
     # Remove first element
-    Xm = Xm[1:]
-    Xp = Xp[1:]
-    Xm = tf.constant(Xm)
-    Xp = tf.constant(Xp)
+    observations = observations[1:]
+    groundtruth  = groundtruth[1:]
+    observations = tf.constant(observations)
+    groundtruth  = tf.constant(groundtruth)
 
     # ------------------------ Training -------------------------
     # Build the model
@@ -59,8 +59,8 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
     train_dataset = {"observations": [], "predictions": []}
     # Form the training dataset
     for i in range(len(Xp)):
-        train_dataset["observations"].append(Xm[i])
-        train_dataset["predictions"].append(Xp[i])
+        train_dataset["observations"].append(observations[i])
+        train_dataset["predictions"].append(groundtruth[i])
     # Get the necessary data into a tf Dataset
     train_data = tf.data.Dataset.from_tensor_slices(train_dataset)
     # Form batches
