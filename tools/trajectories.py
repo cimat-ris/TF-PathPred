@@ -71,13 +71,13 @@ def obs_pred_trajectories(trajectories, separator = 8, f_per_traj = 20):
 def obs_pred_rotated_trajectories(trajectories, separator = 8, f_per_traj = 20):
     # Number of trajectories in the dataset
     N_t    = len(trajectories)
-    Trajm  = []
-    Trajp  = []
-    starts = []
+    observations    = []
+    predictions     = []
+    starting_points = []
     rot_mtcs = []
-    dists = []
-
-    # Scan for all the trajctories 
+    scales = []
+    small_counter = 0
+    # Scan for all the trajctories
     for tr in trajectories:
         # First position
         # TODO: in most other codes the reference is taken at the last observation
@@ -93,32 +93,37 @@ def obs_pred_rotated_trajectories(trajectories, separator = 8, f_per_traj = 20):
 
         # Get the x,y coordinates
         b,a = tr[i]
+        # Norm of the displacement
         d = np.linalg.norm(tr[i])
 
-        # When the displacemnt is very small, we scale by a fixed quanttity
+        # When the displacement is very small, we scale by a fixed quanttity
         if d<0.2:
+            small_counter = small_counter+1
             d=0.2
-
+        # TODO: in the case d is small, I think the following is not a rotation.
+        # One idea could be not to do anything in this case?
         rot_matrix = np.array([[b/d,a/d],[-a/d,b/d]])
         # Scaling the trajectory with respect to the length of the first non-null displacement
         tr = tr/d
-        # Rotate tr with the inverse
+        # Rotate tr with the inverse: this will make all the trajectories having direction 1,0
+        # at the point of first non-null displacement
         tr = tr.dot(rot_matrix.T)
-
         # Keep the rotation inverse
         rot_matrix = rot_matrix.T
         # Keep the observations
-        Trajm.append(np.array(tr[range(separator-1),:],dtype = 'f'))
+        # TODO: use the first 7 following the zero
+        observations.append(np.array(tr[range(separator-1),:],dtype = 'f'))
         # Keep the positions to predict
-        Trajp.append(np.array(tr[range(separator-1,f_per_traj-1),:], dtype = 'f'))
+        # TODO: go one step more, up to f_per_traj
+        predictions.append(np.array(tr[range(separator-1,f_per_traj-1),:], dtype = 'f'))
         # Keep absolute starting point
-        starts.append(s)
+        starting_points.append(s)
         # Keep the inverse of the rotation matrix
         rot_mtcs.append(rot_matrix.T)
         # The normalizing distances
-        dists.append(d)
-
-    return np.array(starts), np.array(Trajm),np.array(Trajp), np.array(dists), np.array(rot_mtcs)
+        scales.append(d)
+    print("Small trajectories: {}".format(small_counter))
+    return np.array(starting_points), np.array(observations),np.array(predictions), np.array(scales), np.array(rot_mtcs)
 
 def obs_pred_rotated_velocities(trajectories, separator = 8, f_per_traj = 20, plot=False):
     # Number of trajectories in the dataset
