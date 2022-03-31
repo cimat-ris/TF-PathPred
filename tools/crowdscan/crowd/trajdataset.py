@@ -43,7 +43,7 @@ class TrajDataset:
         -: check fps value, should be set and bigger than 0
         -: check critical columns should exist in the table
         -: update data types
-        -: fill 'groumates' if they are not set
+        -: fill 'groupmates' if they are not set
         -: checks if velocity do not exist, compute it for each agent
         -: compute bounding box of trajectories
 
@@ -93,7 +93,7 @@ class TrajDataset:
         else:pass
 
         # remove the trajectories shorter than 2 frames
-        data_grouped = self.data.groupby(["scene_id", "agent_id"])
+        data_grouped       = self.data.groupby(["scene_id", "agent_id"])
         single_length_inds = data_grouped.head(1).index[data_grouped.size() < 2]
         self.data = self.data.drop(single_length_inds)
 
@@ -277,5 +277,3 @@ def merge_datasets(dataset_list, new_title=[]):
         merged.title = new_title
 
     return merged
-
-
