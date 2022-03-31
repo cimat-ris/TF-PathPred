@@ -42,22 +42,22 @@ class EncoderLayer(tf.keras.layers.Layer):
 
 
 class Encoder(tf.keras.layers.Layer):
-  def __init__(self, d_model, num_layers, num_heads, dff, maximum_position_encoding, rate=0.1):
+  def __init__(self, d_model, num_layers, num_heads, dff, maximum_position_encoding, dropout_rate=0.1):
     super(Encoder, self).__init__()
     #Dimensions used for interchanging between attention and the FFNN
     self.d_model    = d_model
     self.dff        = dff
     self.num_layers = num_layers
-    # Embedding of the poses
+    # Embedding of the positions
     # TODO: activation function here?
     self.embedding = tf.keras.layers.Dense(d_model)
     # Positional encoding
     self.pos_encoding = positional_encoding(maximum_position_encoding, d_model)
     # Encoding layers
-    self.enc_layers = [EncoderLayer(d_model, num_heads, dff, rate)
+    self.enc_layers = [EncoderLayer(d_model, num_heads, dff, dropout_rate)
                        for _ in range(num_layers)]
     # Dropout layer
-    self.dropout = tf.keras.layers.Dropout(rate)
+    self.dropout = tf.keras.layers.Dropout(dropout_rate)
 
   def call(self, x, training):
     batch_size    = x.shape[0]
@@ -66,6 +66,7 @@ class Encoder(tf.keras.layers.Layer):
     # Size: n_batch x T_obs-1 x d_model
     x  = self.embedding(x)
     # Scaling
+    # TODO: Is it useful here?
     x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
     # Add the positional encoding
     pos_encoding = self.pos_encoding[:sequence_size,:]
