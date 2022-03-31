@@ -19,9 +19,10 @@ from tools.transformer.training import loss_function, accuracy_function, train_s
 def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
     # trajlets is a dictionary of trajectories, keys are the datasets names
     trajlets = get_trajlets(path, training_names)
-    # Xm and Xp will hold the observations and paths-to-predict, respectively
-    # Dimensions: N x Tobs x 2
+    # observations and groundtruth will hold the observations and paths-to-predict, respectively
+    # Dimensions: N x Tobs-1 x 2
     observations = np.zeros([1, Tobs - 1, 2], dtype="float32")
+    # Dimensions: N x Tpred x 2
     groundtruth  = np.zeros([1, Tpred, 2], dtype="float32")
 
     # Process all the trajectories on the dictionary
@@ -58,7 +59,7 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
 
     train_dataset = {"observations": [], "predictions": []}
     # Form the training dataset
-    for i in range(len(Xp)):
+    for i in range(len(groundtruth)):
         train_dataset["observations"].append(observations[i])
         train_dataset["predictions"].append(groundtruth[i])
     # Get the necessary data into a tf Dataset
