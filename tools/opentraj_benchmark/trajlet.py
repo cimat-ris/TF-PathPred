@@ -8,8 +8,8 @@ import numpy as np
 def split_trajectories(traj_groups, length=8, overlap=2., static_filter_thresh=1., to_numpy=False):
     """
     :param traj_groups: DataFrameGroupBy containing N group for N agents
-    :param length:      min duration for trajlets
-    :param overlap:     min overlap duration between consequent trajlets
+    :param length:      min duration for trajlets (in seconds)
+    :param overlap:     min overlap duration between consecutive trajlets
     :param static_filter_thresh:  if a trajlet is shorter than this thrshold, then it is static
     :param to_numpy: (bool) if True the result will be np.ndarray
     :return: list of Pandas DataFrames (all columns)
@@ -28,24 +28,17 @@ def split_trajectories(traj_groups, length=8, overlap=2., static_filter_thresh=1
             continue
         # Number of frames per trajectory
         f_per_traj = int(np.ceil((length - eps) / dt))
-        # Frames to skip to get the desired overlap
-        # TODO
-        # f_step = int(np.ceil((length - overlap - eps) / dt))
-        f_step = 1
+        f_step     = 1
         # Number of frames
         n_frames = len(tr)
         for start_f in range(0, n_frames - f_per_traj, f_step):
-            if True:
-            #if static_filter_thresh < 1E-3 or np.linalg.norm(tr[["pos_x", "pos_y"]].iloc[start_f + f_per_traj].to_numpy() -tr[["pos_x","pos_y"]].iloc[start_f].to_numpy())> static_filter_thresh:
-                # Append the trajectory if it satisfies the non-staticness threshold above
-                trajlets.append(tr.iloc[start_f:start_f + f_per_traj])
+            trajlets.append(tr.iloc[start_f:start_f + f_per_traj])
     if to_numpy:
         trl_np_list = []
         for trl in trajlets:
             trl_np = trl[["pos_x", "pos_y", "vel_x", "vel_y", "timestamp"]].to_numpy()
             trl_np_list.append(trl_np)
         trajlets = np.stack(trl_np_list)
-
     return trajlets
 
 
