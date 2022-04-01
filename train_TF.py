@@ -16,7 +16,7 @@ from tools.transformer.training import loss_function, accuracy_function, train_s
 
 
 #if beta is negative, it means cyclic annealing
-def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
+def train_model(training_names, test_name, path, args, beta = 0):
     # trajlets is a dictionary of trajectories, keys are the datasets names
     trajlets = get_trajlets(path, training_names)
     # observations and groundtruth will hold the observations and paths-to-predict, respectively
@@ -65,7 +65,7 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
     # Get the necessary data into a tf Dataset
     train_data = tf.data.Dataset.from_tensor_slices(train_dataset)
     # Form batches
-    batched_train_data = train_data.batch(128)
+    batched_train_data = train_data.batch(args.batch_size)
     num_batches_per_epoch = batched_train_data.cardinality().numpy()
 
     train_accuracy = tf.keras.metrics.Mean(name='train_accuracy')
@@ -76,7 +76,7 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
         cyclic_begin = int(EPOCHS/2 - M/2)
         cyclic_end = int(EPOCHS/2 + M/2)
     # Main training loop
-    for epoch in range(EPOCHS):
+    for epoch in range(args.epochs):
         start = time.time()
         train_accuracy.reset_states()
         total_loss = 0
@@ -115,11 +115,12 @@ def train_model(training_names, test_name, path, beta = 0, EPOCHS=50):
 
         print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start))
     # PLot
-    fig, ax = plt.subplots(1)
-    plt.margins(0, 0)
-    plt.plot(train_loss_results)
-    plt.show()
-    return transformer
+    if args.plot_loss:
+        fig, ax = plt.subplots(1)
+        plt.margins(0, 0)
+        plt.plot(train_loss_results)
+        plt.show()
+    return transformer, observations, groundtruth
 
 
 if __name__ == '__main__':
@@ -133,11 +134,36 @@ if __name__ == '__main__':
     parser.add_argument('--test',
                         default='ETH-univ',
                         help='name of the dataset to test')
+    parser.add_argument('--batch-size', '--b',
+                    type=int, default=256, metavar='N',
+                    help='input batch size for training (default: 32)')
+    parser.add_argument('--epochs', '--e',
+                    type=int, default=50, metavar='N',
+                    help='number of epochs to train (default: 2)')
+    parser.add_argument('--plot-loss', '--pl',
+                    action='store_true',
+                    help='plot the evolution of the loss during training')
+
     args = parser.parse_args()
 
     # ------------info for training -------------------------------
     datasets_names = ['ETH-hotel', 'ETH-univ', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
     datasets_test = [dataset for dataset in datasets_names if dataset==args.test]
     datasets_train = [dataset for dataset in datasets_names if dataset!=args.test]
+    
     # Train the model
-    transformer = train_model(datasets_train, datasets_test, args.root_path, 0, 51)
+    transformer, train_observations, train_groundtruth = train_model(datasets_train, datasets_test, args.root_path, args, 0)
+
+    # Perform a sanity check
+    idx = np.random.randint(train_observations.shape[0])
+    obs = train_observations[idx:idx+1]
+    gt  = train_groundtruth[idx:idx+1]
+    fig, ax = plt.subplots(1)
+    plt.margins(0, 0)
+    plt.plot(obs[0,:,0],obs[0,:,1],'g-')
+    plt.plot(gt[0,:,0],gt[0,:,1],'r-')
+    aux = obs[:,-1:]
+    # Apply the transformer network to the input
+    pred,__,__ = transformer(obs, aux, training = False, evaluate = 12)
+    plt.plot(pred[0,0,:,0],pred[0,0,:,1],'b-')
+    plt.show()
