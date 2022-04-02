@@ -81,7 +81,8 @@ def obs_pred_rotated_trajectories(trajectories, separator = 8, f_per_traj = 20):
     for tr in trajectories:
         # First position
         # TODO: in most other codes the reference is taken at the last observation
-        s  = tr[0]
+        # s  = tr[0]
+        s  = tr[separator-1]
         tr = tr - s
         # Goes to the first non-zero position
         i  = 0
@@ -112,10 +113,10 @@ def obs_pred_rotated_trajectories(trajectories, separator = 8, f_per_traj = 20):
         rot_matrix = rot_matrix.T
         # Keep the observations
         # TODO: use the first 7 following the zero
-        observations.append(np.array(tr[range(separator-1),:],dtype = 'f'))
+        observations.append(np.array(tr[range(separator),:],dtype = 'f'))
         # Keep the positions to predict
         # TODO: go one step more, up to f_per_traj
-        predictions.append(np.array(tr[range(separator-1,f_per_traj-1),:], dtype = 'f'))
+        predictions.append(np.array(tr[range(separator,f_per_traj),:], dtype = 'f'))
         # Keep absolute starting point
         starting_points.append(s)
         # Keep the inverse of the rotation matrix

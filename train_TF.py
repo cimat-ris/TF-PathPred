@@ -21,7 +21,7 @@ def train_model(training_names, test_name, path, args, beta = 0):
     trajlets = get_trajlets(path, training_names)
     # observations and groundtruth will hold the observations and paths-to-predict, respectively
     # Dimensions: N x Tobs-1 x 2
-    observations = np.zeros([1, Tobs - 1, 2], dtype="float32")
+    observations = np.zeros([1, Tobs, 2], dtype="float32")
     # Dimensions: N x Tpred x 2
     groundtruth  = np.zeros([1, Tpred, 2], dtype="float32")
 
@@ -150,7 +150,7 @@ if __name__ == '__main__':
     datasets_names = ['ETH-hotel', 'ETH-univ', 'UCY-zara1', 'UCY-zara2', 'UCY-univ3']
     datasets_test = [dataset for dataset in datasets_names if dataset==args.test]
     datasets_train = [dataset for dataset in datasets_names if dataset!=args.test]
-    
+
     # Train the model
     transformer, train_observations, train_groundtruth = train_model(datasets_train, datasets_test, args.root_path, args, 0)
 
