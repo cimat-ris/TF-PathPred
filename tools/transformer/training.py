@@ -13,17 +13,16 @@ def loss_function(real, pred):
 # real: n_batch x sequence_length x p
 # prediction: n_batch x n_modes x sequence_length x p
 def ADE_train(real, prediction, maxi=False):
-    sequence_length = real.shape[1]
-    n_batches = prediction.shape[0]
-    n_modes = prediction.shape[1]
-    real_expanded = tf.expand_dims(real, 1)
+    sequence_length= real.shape[1]
+    n_batches      = prediction.shape[0]
+    n_modes        = prediction.shape[1]
+    real_expanded  = tf.expand_dims(real, 1)
     # diff: n_batch x n_modes x sequence_length x p
-    diff = (prediction - real_expanded)**2
-    # Sum over time to get absolute positions and take the squares
-    losses = tf.reduce_sum(diff, 2)
-    losses = tf.sqrt(tf.reduce_sum(losses, 2))
-    # Average over time
-    # losses = tf.reduce_sum(losses, 2) / sequence_length
+    diff   = (prediction - real_expanded)**2
+    # diff = (tf.cumsum(prediction,axis=2) - tf.cumsum(real_expanded,axis=2))**2
+    # Along time, Euclidean distance between predicted and real points
+    losses = tf.sqrt(tf.reduce_sum(diff, 3))
+    losses = tf.reduce_mean(losses, 2)
     # Over the samples: take the min or the max
     if not maxi:
         losses = tf.reduce_min(losses, axis=1)
@@ -69,7 +68,7 @@ def min_ADE_FDE(ground_truth, prediction):
     FDE = diff[:, :, -1, :]
     FDE = tf.norm(FDE, axis=2)
     FDE = tf.math.reduce_min(FDE, axis=1, keepdims=True)
-    # Evaluate ADE    
+    # Evaluate ADE
     ADE = tf.norm(diff, axis=3)
     ADE = tf.math.reduce_min(tf.math.reduce_mean(ADE, axis=2), axis=1, keepdims=True)
     return ADE.numpy(), FDE.numpy()
