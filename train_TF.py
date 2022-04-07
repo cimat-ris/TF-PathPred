@@ -36,10 +36,12 @@ def train_model(training_names, test_name, path, args, beta = 0):
         observations = np.concatenate((observations, minus), axis=0)
         groundtruth = np.concatenate((groundtruth, plus), axis=0)
     # Remove first element
-    observations = observations[1:]
-    groundtruth  = groundtruth[1:]
-    observations = tf.constant(observations)
-    groundtruth  = tf.constant(groundtruth)
+    observations     = observations[1:]
+    groundtruth      = groundtruth[1:]
+    #observations     = observations[:,1:]-observations[:,:-1]
+    #groundtruth[:,1:]= groundtruth[:,1:] -groundtruth[:,:-1]
+    observations     = tf.constant(observations)
+    groundtruth      = tf.constant(groundtruth)
 
     # ------------------------ Training -------------------------
     # Build the model
@@ -66,6 +68,8 @@ def train_model(training_names, test_name, path, args, beta = 0):
     train_data = tf.data.Dataset.from_tensor_slices(train_dataset)
     # Form batches
     batched_train_data = train_data.batch(args.batch_size)
+    batched_train_data = batched_train_data.shuffle(10000, reshuffle_each_iteration=True)
+
     num_batches_per_epoch = batched_train_data.cardinality().numpy()
 
     train_accuracy = tf.keras.metrics.Mean(name='train_accuracy')
@@ -100,7 +104,7 @@ def train_model(training_names, test_name, path, args, beta = 0):
                                         beta = beta_aux)
             total_loss += batch_loss
             if id_batch % 10 == 0:
-                print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, id_batch, batch_loss,
+                print('Epoch {} Batch {:03d} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, id_batch, batch_loss,
                                                                              train_accuracy.result()))
         total_loss = total_loss / num_batches_per_epoch
         train_loss_results.append(total_loss)
@@ -157,13 +161,18 @@ if __name__ == '__main__':
     # Perform a sanity check
     idx = np.random.randint(train_observations.shape[0])
     obs = train_observations[idx:idx+1]
-    gt  = train_groundtruth[idx:idx+1]
     fig, ax = plt.subplots(1)
     plt.margins(0, 0)
     plt.plot(obs[0,:,0],obs[0,:,1],'g-')
+    # gt  = np.cumsum(train_groundtruth[idx:idx+1],axis=1)
+    gt  = train_groundtruth[idx:idx+1]
+    plt.plot([0,gt[0,0,0]],[0,gt[0,0,1]],'r-')
     plt.plot(gt[0,:,0],gt[0,:,1],'r-')
+
     aux = obs[:,-1:]
     # Apply the transformer network to the input
     pred,__,__ = transformer(obs, aux, training = False, evaluate = 12)
+    # pred       = np.cumsum(pred,axis=2)
+    plt.plot([0,pred[0,0,0,0]],[0,pred[0,0,0,1]],'b-')
     plt.plot(pred[0,0,:,0],pred[0,0,:,1],'b-')
     plt.show()
