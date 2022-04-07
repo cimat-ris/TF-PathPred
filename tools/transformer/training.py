@@ -102,4 +102,4 @@ def train_step(input, target, transformer, optimizer, beta = 0, burnout=False):
         gradients = tape.gradient(loss, transformer.trainable_variables)
         optimizer.apply_gradients(zip(gradients, transformer.trainable_variables))
 
-    return loss
+    return loss, KL_value

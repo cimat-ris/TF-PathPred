@@ -29,6 +29,7 @@ def test_model(test_name,path, n_trajs = None):
     #-------------------- Visualize solution ----------------------
 
     transformer = Transformer(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
+    # transformer = Transformer_CVAE(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
     test_dataset = {"observations":[],"predictions":[],"starts":[],"distances":[],"mtcs":[]}
     # Form the training dataset
     for i in range(len(Xp_test)):
