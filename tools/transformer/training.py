@@ -61,17 +61,20 @@ def ADE_train_CVAE(real, prediction, maximum=False):
 
 
 def min_ADE_FDE(ground_truth, prediction):
+    # ground_truth : batch_size x sequence_length x 2
+    # prediction   : batch_size x num_modes x sequence_length x 2
+
     sequence_length = ground_truth.shape[1]
     diff = prediction - tf.expand_dims(ground_truth, 1)
-    diff = diff ** 2
+    diff = diff
     # Evaluate FDE
-    FDE = diff[:, :, -1, :]
-    FDE = tf.norm(FDE, axis=2)
-    FDE = tf.math.reduce_min(FDE, axis=1, keepdims=True)
-    # Evaluate ADE
-    ADE = tf.norm(diff, axis=3)
-    ADE = tf.math.reduce_min(tf.math.reduce_mean(ADE, axis=2), axis=1, keepdims=True)
-    return ADE.numpy(), FDE.numpy()
+    FDE = diff[:, :, -1, :] # batch_size x num_modes x 2
+    FDE = np.linalg.norm(FDE, axis=2)
+    FDE = np.amin(FDE, axis=1, keepdims=True)
+    # Evaluate ADE    
+    ADE = np.linalg.norm(diff, axis=3) # batch_size x num_modes x sequence_length
+    ADE = np.amin(np.mean(ADE, axis=2), axis=1)
+    return ADE, FDE
 
 
 def accuracy_function(real, pred):

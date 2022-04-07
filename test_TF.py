@@ -28,7 +28,7 @@ def test_model(test_name,path, n_trajs = None):
 
     #-------------------- Visualize solution ----------------------
 
-    transformer = Transformer(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
+    transformer = Transformer_CVAE(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
     # transformer = Transformer_CVAE(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
     test_dataset = {"observations":[],"predictions":[],"starts":[],"distances":[],"mtcs":[]}
     # Form the training dataset
@@ -62,28 +62,33 @@ def test_model(test_name,path, n_trajs = None):
     weights = [],[],[],[]
     print("Calculating predictions")
     for batch in batched_test_data:
-        start    = batch["starts"]
-        distance = batch["distances"]
-        mtc      = batch["mtcs"]
+        start    = batch["starts"].numpy()
+        distance = batch["distances"].numpy()
+        mtc      = batch["mtcs"].numpy()
         input    = batch["observations"]
         target   = batch["predictions"]
         pred, w, KL_value = transformer(input,input[:,-1:],training=False,evaluate=12)
 
         # Reconstruct full trajectory: n_batch x sequence_lenth x p
+        input  = input.numpy()
+        target = target.numpy()
+        pred   = pred.numpy()
+
         inp_tar = np.concatenate([input,target],axis = 1)
         inp_pred= np.zeros([pred.shape[0],pred.shape[1],(input.shape[1]+pred.shape[2]),2])
         # Stack the modes
         for i in range(pred.shape[1]):
         	inp_pred[:,i] = np.concatenate([input,pred[:,i]],axis = 1)
 
+        for i in range(len(inp_tar)):
+            inp_tar[i]  = distance[i] * inp_tar[i] @ mtc[i].T + start[i]
+            inp_pred[i] = distance[i] * inp_pred[i] @ mtc[i].T +start[i]
+
         # Observations
         observations  = inp_tar[:,:7]
         ground_truth  = inp_tar[:,6:]
         predictions   = inp_pred[:,:,6:]
-        #print(ground_truth.shape)
-        #print(predictions.shape)
-        #print(ground_truth[:,6])
-        #print(predictions[:,0,6])
+        
         ade,fde = min_ADE_FDE(ground_truth,predictions)
     trajs=[observations,ground_truth,predictions]
     print("ADE:", np.mean(ade),"FDE:", np.mean(fde))
