@@ -17,15 +17,15 @@ class DecoderLayer(tf.keras.layers.Layer):
       self.att1 = Multi_headed_attention_cvae(d_model, num_heads, num_modes)
       self.att2 = Multi_headed_attention_cvae(d_model, num_heads, num_modes)
 
-    self.ffn = point_wise_feed_forward_network(d_model,dff)
+    self.ffn        = point_wise_feed_forward_network(d_model,dff)
 
     self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
     self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
     self.layernorm3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
-    self.dropout1 = tf.keras.layers.Dropout(rate)
-    self.dropout2 = tf.keras.layers.Dropout(rate)
-    self.dropout3 = tf.keras.layers.Dropout(rate)
+    self.dropout1   = tf.keras.layers.Dropout(rate)
+    self.dropout2   = tf.keras.layers.Dropout(rate)
+    self.dropout3   = tf.keras.layers.Dropout(rate)
 
   def call(self, x, enc_output, training, mask):
     attn1, attn_weights_block1 = self.att1(x, x, x, mask)

@@ -96,9 +96,9 @@ class Multi_headed_attention_cvae(tf.keras.layers.Layer):
 
   def split_heads(self, x):
     # Reshape the obtained tensor (queries,keys,values)
-    # as num_batch x num_modes_sequence_length x num_heads x depth
+    # as num_batch x num_modes x sequence_length x num_heads x depth
     x = tf.reshape(x,[x.shape[0],self.num_modes,-1,self.num_heads, self.depth])
-    # Reorganize as num_batch x num_heads x sequence_length x depth
+    # Reorganize as num_batch x num_modes x num_heads x sequence_length x depth
     return tf.transpose(x, perm=[0,1,3,2,4])
 
   def call(self, v, k, q, mask):

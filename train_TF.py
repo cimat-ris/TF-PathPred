@@ -46,6 +46,7 @@ def train_model(training_names, test_name, path, args, beta = 0):
     # ------------------------ Training -------------------------
     # Build the model
     transformer = Transformer(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
+    # transformer = Transformer_CVAE(d_model, num_layers, num_heads, dff, num_modes, dropout_rate)
 
     checkpoint_path = f"./generated_data/checkpoints/train/{test_name[0]}"
 
@@ -88,7 +89,7 @@ def train_model(training_names, test_name, path, args, beta = 0):
         for (id_batch, batch) in enumerate(batched_train_data):
 
             if epoch < 0: #modify the value to determine how many epochs are for burnout
-                batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer, beta = beta,
+                batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer, beta = 0,
                                         burnout=True)
             else:
                 #When beta is negative, its absolute value represents the amount of cycles
@@ -100,8 +101,9 @@ def train_model(training_names, test_name, path, args, beta = 0):
                 #This is when there is no cyclic annealing
                 else: beta_aux = beta
 
-                batch_loss = train_step(batch["observations"], batch["predictions"], transformer, optimizer,
+                batch_loss, dummy = train_step(batch["observations"], batch["predictions"], transformer, optimizer,
                                         beta = beta_aux)
+                # print(f"{id_batch} batch, KL_value:{dummy}")
             total_loss += batch_loss
             if id_batch % 10 == 0:
                 print('Epoch {} Batch {:03d} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, id_batch, batch_loss,
@@ -156,7 +158,7 @@ if __name__ == '__main__':
     datasets_train = [dataset for dataset in datasets_names if dataset!=args.test]
 
     # Train the model
-    transformer, train_observations, train_groundtruth = train_model(datasets_train, datasets_test, args.root_path, args, 0)
+    transformer, train_observations, train_groundtruth = train_model(datasets_train, datasets_test, args.root_path, args, 1)
 
     # Perform a sanity check
     idx = np.random.randint(train_observations.shape[0])
